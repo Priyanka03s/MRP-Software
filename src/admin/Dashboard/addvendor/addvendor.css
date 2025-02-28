@@ -1,0 +1,174 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+body {
+   min-height: 100vh;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   background: url('../../../images/bg-1.webp') center / cover;
+  
+}
+.container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  width: 100vw;
+}
+
+.form{
+  width: 40%;
+  margin-left: 100px;
+}
+.table_head {
+  text-align: center;
+  margin-bottom: 10px;
+}
+.table_head-1{
+  width: 100%;
+  height: 10%;
+  background-color: rgba(243, 17, 17, 0.267);
+  margin-bottom: 20px;
+  margin-top: -10px;
+  text-align: center;
+}
+
+
+table.tab-1, th, td {
+  padding: 1rem;
+  border-collapse: collapse;
+  text-align: left;
+ }
+
+.table_mains {
+   width: 20%;
+  height: 70vh;
+  background-color: #fff5;
+  backdrop-filter: blur(7px);
+  box-shadow: 0 .4rem .8rem #0005;
+  border-radius: .8rem;
+  width: 100%;
+  overflow-x: auto; 
+  overflow: hidden;
+
+}
+table.tab-1::-webkit-scrollbar{
+  width: 0.5rem;
+  height: 0.5rem;
+}
+table.tab-1::-webkit-scrollbar-thumb{
+ border-radius: .5rem;
+ background-color: #0004;
+ visibility: hidden;
+}
+table.tab-1:hover::-webkit-scrollbar-thumb{
+  visibility: visible;
+
+}
+section.table_body-1{
+  width: 95%;
+  max-height: 60%; 
+  background-color: #fffb;
+  margin:  auto;
+  border-radius: 0.6rem;
+  overflow: auto;
+  display: block; }
+table.tab-1{
+  width: 100%;
+}
+thead.tab-2 th {
+  position: sticky;
+  top: 0;
+  left: 0;
+  background-color: #bec03efe;
+}
+tbody.body-1 tr.tab-3:nth-child(even) {
+  background-color: #b1a2a2fb;
+}
+
+
+@media (max-width: 768px) {
+  .table_body-1 table.tab-1 {
+    font-size: 12px;
+  }
+
+  .table_body-1 td img {
+    width: 40px;
+    height: 40px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+}
+@media (max-width: 500px) {
+  .container {
+    flex-direction: column;
+    gap: 10px; 
+    align-items: center;
+  }
+
+  .form {
+    width: 95%; 
+    padding: 15px; 
+    margin-top: 300px; 
+    box-sizing: border-box;
+   margin-right: 100px;
+  }
+
+  .form input,
+  .form button {
+    width: 80%;
+    max-width: 300px; 
+    margin: 10px auto; 
+    font-size: 14px; 
+    padding: 10px; 
+    display: block; 
+    box-sizing: border-box;
+  }
+
+  .form h2 {
+    font-size: 18px; 
+    text-align: center; 
+  }
+
+  label {
+    font-size: 12px;
+  }
+  input[type="text"],
+  input[type="number"],
+  select {
+    font-size: 12px;
+  }
+  button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}
+
+.suggestions {
+  border: 1px solid #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  position: absolute;
+  z-index: 1000;
+}
+
+.suggestion-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background-color: #f0f0f0;
+}
+
+.highlight {
+  background-color: yellow;
+}

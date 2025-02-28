@@ -1,0 +1,51 @@
+.vendor-dashboard{
+  width: 90vw;
+  height: 96vh;
+  background-color: #fff5;
+  backdrop-filter: blur(7px);
+  box-shadow: 0 .4rem .8rem #0005;
+  border-radius: .8rem;
+
+  overflow: hidden;
+}
+.Tab-07{
+  width: 95%;
+  max-height: 60%; 
+  background-color: #fffb;
+  margin:  auto;
+  border-radius: 0.6rem;
+  overflow: auto;
+  display: block; }
+
+.vendor-dashboard table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .vendor-dashboard th, .vendor-dashboard td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  .vendor-dashboard .dot {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin: 0 3px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  
+  .vendor-dashboard .save-button {
+    padding: 5px 10px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .vendor-dashboard .save-button:hover {
+    background-color: #45a049;
+  }
+  
