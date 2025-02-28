@@ -1025,59 +1025,73 @@ doc.autoTable({
   };
   const handleInputChange = (index, event) => {
     const { name, value } = event.target;
-    
+  
+    // Clone the products array
     const newProducts = [...products];
     newProducts[index][name] = value;
-
+  
+    // Existing logic for cost calculations
     if (
-        name === 'rejectionQuantity' ||
-        name === 'materialCostPerKg' ||
-        name === 'materialWeightPerGrams' ||
-        name === 'gstPercentage' ||
-        name === 'totalAmount'
+      name === 'rejectionQuantity' ||
+      name === 'materialCostPerKg' ||
+      name === 'materialWeightPerGrams' ||
+      name === 'gstPercentage' ||
+      name === 'totalAmount'
     ) {
-        calculateCosts(index, newProducts);
-
-        const materialCostPerKg = parseFloat(newProducts[index].materialCostPerKg) || 0;
-        const materialWeightPerGrams = parseFloat(newProducts[index].materialWeightPerGrams) || 0;
-        const gstPercentage = parseFloat(newProducts[index].gstPercentage) || 0;
-
-        // Calculate Raw Material Cost Per Gram
-        const totalMaterialCostPerKg = (materialCostPerKg / 1000) * materialWeightPerGrams;
-
-        // Calculate GST Amount
-        const gstAmount = (totalMaterialCostPerKg * gstPercentage) / 100;
-
-        // Calculate Total Material Cost with GST
-        const materialCostWithGst = totalMaterialCostPerKg + gstAmount;
-
-        // Assign calculated values
-        newProducts[index].gstAmount = gstAmount.toFixed(3);
-        newProducts[index].materialCostWithGst = materialCostWithGst.toFixed(3);
+      calculateCosts(index, newProducts);
+  
+      const materialCostPerKg = parseFloat(newProducts[index].materialCostPerKg) || 0;
+      const materialWeightPerGrams = parseFloat(newProducts[index].materialWeightPerGrams) || 0;
+      const gstPercentage = parseFloat(newProducts[index].gstPercentage) || 0;
+  
+      // Calculate Raw Material Cost Per Gram
+      const totalMaterialCostPerKg = (materialCostPerKg / 1000) * materialWeightPerGrams;
+  
+      // Calculate GST Amount
+      const gstAmount = (totalMaterialCostPerKg * gstPercentage) / 100;
+  
+      // Calculate Total Material Cost with GST
+      const materialCostWithGst = totalMaterialCostPerKg + gstAmount;
+  
+      // Assign calculated values
+      newProducts[index].gstAmount = gstAmount.toFixed(3);
+      newProducts[index].materialCostWithGst = materialCostWithGst.toFixed(3);
     }
-
+  
     if (["totalRawMaterialCost", "processType", "totalAmount"].includes(name)) {
-        calculateTotalCostOfComponent(index, newProducts);
+      calculateTotalCostOfComponent(index, newProducts);
     }
-
+  
     const materialCostWithGst = parseFloat(newProducts[index].materialCostWithGst) || 0;
     const rejectionQuantity = parseFloat(newProducts[index].rejectionQuantity) || 0;
     const totalAmount = parseFloat(newProducts[index].totalAmount) || 0;
-
+  
     newProducts[index].unprocessedCost = (rejectionQuantity * materialCostWithGst).toFixed(3);
-
+  
     const lossInProcess = (rejectionQuantity * materialCostWithGst + totalAmount).toFixed(3);
     newProducts[index].lossInProcess = lossInProcess;
-
+  
     const quantity = parseFloat(newProducts[index].totalQuantity) || 0;
     const transportCost = parseFloat(newProducts[index].transportCost) || 0;
-
+  
     const totalRawMaterialCost = quantity * materialCostWithGst + transportCost;
     newProducts[index].totalRawMaterialCost = totalRawMaterialCost.toFixed(3);
-
+  
+    // New logic for Balance Quantity calculation
+    if (name === "purchaseQty" || name === "quantityTakenProcess") {
+      const purchaseQty = parseFloat(newProducts[index].purchaseQty) || 0;
+      const quantityTakenProcess = parseFloat(newProducts[index].quantityTakenProcess) || 0;
+  
+      // Calculate Balance Quantity
+      newProducts[index].balanceQty = (purchaseQty - quantityTakenProcess).toFixed(3);
+    }
+  
+    // Update the state
     setProducts(newProducts);
     console.log("Updated Product Data:", newProducts);
-};
+  };
+  
+  
 
 
   
@@ -1745,46 +1759,50 @@ useEffect(() => {
                 <td>{index + 1}</td>
                 <td >{product.id}</td>
                 <td>
-                <label>Indicator:</label>
-                <Indicator orderDate={product.orderDate} />                                                                                                 
-                <label>Purchase No:</label>
-                  <input
-                    type="text"
-                    name="purchaseNumber"
-                    value={product.purchaseNumber  || ''}
-                    onChange={(event) => handleInputChange(index, event)}
-              
-                  />
-                <label>Purchase Order Quantity:</label>
-                  <input
-                    type="text"
-                    name="purchaseQty"
-                    value={product.purchaseQty  || ''}
-                    onChange={(event) => handleInputChange(index, event)}
-              
-                  />
-                <label>Order Date:</label>
-                <input
-                type="date"
-                name="orderDate"
-                value={product.orderDate || ''}
-                onChange={(event) => handleInputChange(index, event)}
-              />
-                <label>Quantity taken for Process:</label>
-                <input
-                type="text"
-                name="quantityTakenProcess"
-                value={product.quantityTakenProcess || ''}
-                onChange={(event) => handleInputChange(index, event)}
-              />
-              {/* <label>Po Cost Of This Component:</label>
-                  <input
-                    type="text"
-                    name="totalcostofCN"
-                    value={product.totalcostofCN || ''}
-                    readOnly
-                  /> */}
-                </td>
+  <label>Indicator:</label>
+  <Indicator orderDate={product.orderDate} />
+
+  <label>Purchase No:</label>
+  <input
+    type="text"
+    name="purchaseNumber"
+    value={product.purchaseNumber || ''}
+    onChange={(event) => handleInputChange(index, event)}
+  />
+
+  <label>Purchase Order Quantity:</label>
+  <input
+    type="number"
+    name="purchaseQty"
+    value={product.purchaseQty || ''}
+    onChange={(event) => handleInputChange(index, event)}
+  />
+
+  <label>Order Date:</label>
+  <input
+    type="date"
+    name="orderDate"
+    value={product.orderDate || ''}
+    onChange={(event) => handleInputChange(index, event)}
+  />
+
+  <label>Quantity Taken for Process:</label>
+  <input
+    type="number"
+    name="quantityTakenProcess"
+    value={product.quantityTakenProcess || ''}
+    onChange={(event) => handleInputChange(index, event)}
+  />
+
+  <label>Balance Quantity:</label>
+  <input
+    type="number"
+    name="balanceQty"
+    value={product.balanceQty || ''}
+    readOnly
+  />
+</td>
+
                 <td>
                   <label>Componet No:</label>
                   <input
