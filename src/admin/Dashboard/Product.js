@@ -1663,22 +1663,13 @@ useEffect(() => {
         </div>
       )}
     </div>
-        <div className="Amount" style={{ marginTop: "10px" }}>
+        <div className="Amount">
           <button onClick={handlePurchase}>Purchase</button>
         </div>
 
-        <div style={{ marginTop: "10px" }}>
+        <div>
           <button
-            onClick={handleStock}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#28a745",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-          >
+            onClick={handleStock}>
             View Stock
           </button>
         </div>
