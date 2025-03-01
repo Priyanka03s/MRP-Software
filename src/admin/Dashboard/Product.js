@@ -67,6 +67,7 @@ const Product = () => {
   const [dynamicFields, setDynamicFields] = useState({});
   const [stockData, setStockData] = useState([]); // State for stock data
   const [showStockPage, setShowStockPage] = useState(false); 
+    
   const [companyDetails, setCompanyDetails] = useState({
     companyName: "",
     companyAddress: "",
@@ -205,14 +206,41 @@ const Product = () => {
 // Bill for PO
 
 const handleGenerateBillPO = () => {
-  // Ensure these variables are defined and initialized before use
-  const companyAddress = "Your Company Address";  // Replace with actual value
-  const phNumber = "Your Phone Number";  // Replace with actual value
-  const gstNO = "Your GST Number";  // Replace with actual value
-  const eccNO = "Your ECC Number";  // Replace with actual value
-  
+  // Prompt for Component Number and Name
+  const componentNumber = prompt("Enter the Component Number:");
+  if (!componentNumber) {
+    alert("Component Number is required to generate the bill.");
+    return;
+  }
+
+  const componentName = prompt("Enter the Component Name:");
+  if (!componentName) {
+    alert("Component Name is required to generate the bill.");
+    return;
+  }
+
+  // Replace these with actual values
+  const companyAddress = companyAddress;
+  const phNumber = phNumber;
+  const gstNO = gstNO;
+  const eccNO =eccNO;
+
+  // Example data for demonstration purposes
+  const purchaseData = [
+    {
+      componentNumber: componentNumber,
+      componentName: componentName,
+      hsnCode: "1234",
+      materialName: "Polymer",
+      customerName: "John Doe",
+      gstNo: "GST123456",
+      invoiceNumber: "INV98765",
+      
+    },
+  ];
+
   const doc = new jsPDF();
-  
+
   // Heading
   doc.setFontSize(16);
   doc.text("Purchase Order", 105, 15, null, null, "center");
@@ -220,18 +248,18 @@ const handleGenerateBillPO = () => {
   // From Address
   doc.setFontSize(12);
   doc.text("From Address:", 15, 25);
-  doc.text(`${componentName}`, 15, 30); // Ensure 'componentName' is defined
+  doc.text(`${companyAddress}`, 15, 30);
   doc.text(`OFFICE: ${companyAddress}`, 15, 35);
   doc.text(`PH: ${phNumber}`, 15, 40);
-  doc.text(`GSTIN #:${gstNO}`, 15, 45);
-  doc.text(`Ecc no:${eccNO}`, 15, 50); // Fixed Y position to avoid overlap
+  doc.text(`GSTIN #: ${gstNO}`, 15, 45);
+  doc.text(`Ecc no: ${eccNO}`, 15, 50);
 
   // Table Layout
   const tableColumn = ["To Address", "Range", "Division", "II E", "PO No.", "Date"];
   const tableRows = [["Ms. Jeevanathan Polymer UNIT II", "II E", "CBE-II", "", "397", "19.02.25"]];
 
   doc.autoTable({
-    startY: 50,
+    startY: 60,
     head: [tableColumn],
     body: tableRows,
     theme: "grid",
@@ -239,7 +267,15 @@ const handleGenerateBillPO = () => {
   });
 
   // Component Details Table
-  const productTableColumns = ["Component Details", "HSN Code", "Material Name", "Customer Name", "GST No", "Invoice Number"];
+  const productTableColumns = [
+    "Component Details",
+    "HSN Code",
+    "Material Name",
+    "Customer Name",
+    "GST No",
+    "Invoice Number",
+  ];
+
   const productTableRows = purchaseData.map((product) => [
     `Component No: ${product.componentNumber}\nComponent Name: ${product.componentName}`,
     product.hsnCode || "N/A",
@@ -257,9 +293,9 @@ const handleGenerateBillPO = () => {
     styles: { fontSize: 10 },
   });
 
-  doc.save("Purchase_Order.pdf");
+  // Save the generated PDF
+  doc.save(`${componentNumber}_${componentName}_Purchase_Order.pdf`);
 };
-
 
 // stock
 
@@ -371,6 +407,12 @@ const renderStockPage = () => {
     </div>
   );
 };
+
+
+// Dc Bill
+
+
+
 
 
 
@@ -1028,6 +1070,8 @@ doc.autoTable({
   
     // Clone the products array
     const newProducts = [...products];
+    const updatedProducts = [...products]; 
+    updatedProducts[index][name] = value;
     newProducts[index][name] = value;
   
     // Existing logic for cost calculations
@@ -1057,7 +1101,10 @@ doc.autoTable({
       newProducts[index].gstAmount = gstAmount.toFixed(3);
       newProducts[index].materialCostWithGst = materialCostWithGst.toFixed(3);
     }
-  
+   // Automatically update totalQuantity based on quantityTakenProcess
+   if (name === 'quantityTakenProcess') {
+    updatedProducts[index].totalQuantity = value; // Directly set totalQuantity to the value of quantityTakenProcess
+  }
     if (["totalRawMaterialCost", "processType", "totalAmount"].includes(name)) {
       calculateTotalCostOfComponent(index, newProducts);
     }
@@ -1217,17 +1264,28 @@ doc.autoTable({
       // Subtractive process with scrap calculations
   
       // Prompt for weight unit
-      let weightUnit = prompt("Enter the unit of weight (grams/kg):").toLowerCase().trim();
+      let weightUnit = prompt("Enter the unit of weight (grams/kg):");
+      if (!weightUnit) {
+        alert("Process canceled or no input provided for weight unit.");
+        return;
+      }
+  
+      weightUnit = weightUnit.toLowerCase().trim();
       if (weightUnit !== "grams" && weightUnit !== "kg") {
         alert("Invalid weight unit! Please enter 'grams' or 'kg'.");
         return;
       }
   
       // Prompt for processed material weight
-      const processedMaterialWeight = parseFloat(
-        prompt(`Enter Processed Material Weight (${weightUnit}):`)
+      const processedMaterialWeightInput = prompt(
+        `Enter Processed Material Weight (${weightUnit}):`
       );
+      if (!processedMaterialWeightInput) {
+        alert("Process canceled or no input provided for processed material weight.");
+        return;
+      }
   
+      const processedMaterialWeight = parseFloat(processedMaterialWeightInput);
       if (isNaN(processedMaterialWeight) || processedMaterialWeight <= 0) {
         alert("Invalid weight! Please enter a positive numeric value.");
         return;
@@ -1253,9 +1311,8 @@ doc.autoTable({
         totalMaterialCostPerKg + (totalMaterialCostPerKg * gstPercentage) / 100;
   
       // Store calculated scrap weight and unit
-      newProducts[index].scrapWeight = weightUnit === "kg" 
-        ? (scrapWeight / 1000).toFixed(3) 
-        : scrapWeight.toFixed(3);
+      newProducts[index].scrapWeight =
+        weightUnit === "kg" ? (scrapWeight / 1000).toFixed(3) : scrapWeight.toFixed(3);
       newProducts[index].scrapWeightUnit = weightUnit === "kg" ? "kg" : "grams";
       newProducts[index].scrapCost = materialCostWithGst.toFixed(3);
       setSelectedProcessType("subtractive");
@@ -1745,6 +1802,7 @@ useEffect(() => {
               <th>Material Name</th>
               <th>Material Cost</th>
               <th>Quantity</th>
+              <th>Scrap Calculation</th>
               <th>Process Type</th>
               <th>Process Details</th>
               <th>Customer Details</th>
@@ -1786,14 +1844,13 @@ useEffect(() => {
     onChange={(event) => handleInputChange(index, event)}
   />
 
-  <label>Quantity Taken for Process:</label>
-  <input
-    type="number"
-    name="quantityTakenProcess"
-    value={product.quantityTakenProcess || ''}
-    onChange={(event) => handleInputChange(index, event)}
-  />
-
+<label>Quantity Taken for Process:</label>
+<input
+  type="number"
+  name="quantityTakenProcess"
+  value={product.quantityTakenProcess || ''}
+  onChange={(event) => handleInputChange(index, event)}
+/>
   <label>Balance Quantity:</label>
   <input
     type="number"
@@ -1899,12 +1956,12 @@ useEffect(() => {
                 </td>
                 <td>
                 <label>Total Quantity:</label>
-    <input
-      type="number"
-      name="totalQuantity"
-      value={product.totalQuantity || ''}
-      onChange={(event) => handleInputChange(index, event)}
-    />
+<input
+  type="number"
+  name="totalQuantity"
+  value={product.totalQuantity || ''}
+  readOnly // Prevent manual edits
+/>
     <label>RawMaterial Cost Of one component:</label>
     <input
       type="number"
@@ -1926,6 +1983,33 @@ useEffect(() => {
       readOnly
     />
             </td>
+            
+  <td>
+            <div>
+              <h5>Scrap Calculation</h5>
+              <hr/>
+  
+    <div key={product.id}>
+      <h3>{product.name}</h3>
+      <p>Process Type: {product.processType || "None"}</p>
+      <p>
+        Scrap Weight: {product.scrapWeight || "Not Calculated"}{" "}
+        {product.scrapWeightUnit || ""}
+      </p>
+      <p>Scrap Cost: {product.scrapCost || "Not Calculated"}</p>
+      <select
+        onChange={(e) => handleProcessTypeClick(index, e.target.value)}
+        value={product.processType || ""}
+      >
+        <option value="">Select Process Type</option>
+        <option value="addictive">Addictive</option>
+        <option value="foaming">Foaming</option>
+        <option value="subtractive">Subtractive</option>
+      </select>
+    </div>
+ 
+</div>
+ </td>
 
 
             <td>
@@ -1957,128 +2041,107 @@ useEffect(() => {
   />
   <button onClick={() => handleSaveProduct(product)}>Save</button>
   <hr />
-  <div>
-  {products.map((product, index) => (
-    <div key={product.id}>
-      <h3>{product.name}</h3>
-      <p>Process Type: {product.processType || "None"}</p>
-      <p>
-        Scrap Weight: {product.scrapWeight || "Not Calculated"}{" "}
-        {product.scrapWeightUnit || ""}
-      </p>
-      <p>Scrap Cost: {product.scrapCost || "Not Calculated"}</p>
-      <select
-        onChange={(e) => handleProcessTypeClick(index, e.target.value)}
-        value={product.processType || ""}
-      >
-        <option value="">Select Process Type</option>
-        <option value="addictive">Addictive</option>
-        <option value="foaming">Foaming</option>
-        <option value="subtractive">Subtractive</option>
-      </select>
-    </div>
-  ))}
-</div>
+
 
 </td>
 
 
 
 <td>
-{product.processType === 'inhouse' && (
-  <div style={{ width: '100px' }}>
-    <p style={{ fontWeight: 'bold', color: '#c70000' }}>Inhouse Details</p>
+  {product.processType === "inhouse" && (
+    <div style={{ width: "100px" }}>
+      <p style={{ fontWeight: "bold", color: "#c70000" }}>Inhouse Details</p>
 
-    <label>Process hour Rate: </label>
-    <input
-      type="number"
-      name="cycleHourRate"
-      value={product.inhouseDetails.cycleHourRate || ''}
-      onChange={(e) =>
-        handleProcessDetailChange(index, 'inhouse', 'cycleHourRate', e.target.value)
-      }
-    />
-
-    <label>Process Time In Minutes: </label>
-    <input
-      type="number"
-      name="CycleTime"
-      value={product.inhouseDetails.CycleTime || ''}
-      onChange={(e) => {
-        const value = e.target.value;
-        handleProcessDetailChange(index, 'inhouse', 'CycleTime', value);
-        const convertedHours = (value / 60).toFixed(2); // Convert minutes to hours
-        handleProcessDetailChange(index, 'inhouse', 'CycleTimeInHours', convertedHours);
-      }}
-    />
-
-    <label>Process Time In Hours: </label>
-    <input
-      type="number"
-      name="CycleTimeInHours"
-      value={product.inhouseDetails.CycleTimeInHours || ''}
-      onChange={(e) => {
-        const value = e.target.value;
-        handleProcessDetailChange(index, 'inhouse', 'CycleTimeInHours', value);
-        const convertedMinutes = Math.round(value * 60); // Convert hours to minutes
-        handleProcessDetailChange(index, 'inhouse', 'CycleTime', convertedMinutes);
-      }}
-    />
-
-    <label>Total Process Cost: </label>
-    <input
-      type="number"
-      name="totalAmount"
-      value={product.inhouseDetails.totalAmount || ''}
-      readOnly
-    />
-  </div>
-)}
-
-  {product.processType === 'outhouse' && (
-    <div>
-      <p>Out-House Details</p>
-      <label>Vendor Cost: </label>
+      <label>Process hour Rate: </label>
       <input
         type="number"
-        name="vendorcost"
-        value={product.outhouseDetails.vendorcost  || ''}
-        onChange={(e) => handleProcessDetailChange(index, 'outhouse', 'vendorcost', e.target.value)}
-      />
-      <label>Transport Cost: </label>
-      <input
-        type="number"
-        name="transportcost"
-        value={product.outhouseDetails.transportcost  || ''}
+        name="cycleHourRate"
+        value={product.inhouseDetails.cycleHourRate || ""}
         onChange={(e) =>
-          handleProcessDetailChange(index, 'outhouse', 'transportcost', e.target.value)
+          handleProcessDetailChange(index, "inhouse", "cycleHourRate", e.target.value)
         }
       />
-      <label>Purchase Cost: </label>
+
+      <label>Process Time In Minutes: </label>
       <input
         type="number"
-        name="purchasecost"
-        value={product.outhouseDetails.purchasecost  || ''}
-        onChange={(e) =>
-          handleProcessDetailChange(index, 'outhouse', 'purchasecost', e.target.value)
-        }
+        name="CycleTime"
+        value={product.inhouseDetails.CycleTime || ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          handleProcessDetailChange(index, "inhouse", "CycleTime", value);
+          const convertedHours = (value / 60).toFixed(2); // Convert minutes to hours
+          handleProcessDetailChange(index, "inhouse", "CycleTimeInHours", convertedHours);
+        }}
       />
-      <label>GST (%): </label>
+
+      <label>Process Time In Hours: </label>
       <input
         type="number"
-        name="gst"
-        value={product.outhouseDetails.gst  || ''}
-        onChange={(e) => handleProcessDetailChange(index, 'outhouse', 'gst', e.target.value)}
+        name="CycleTimeInHours"
+        value={product.inhouseDetails.CycleTimeInHours || ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          handleProcessDetailChange(index, "inhouse", "CycleTimeInHours", value);
+          const convertedMinutes = Math.round(value * 60); // Convert hours to minutes
+          handleProcessDetailChange(index, "inhouse", "CycleTime", convertedMinutes);
+        }}
       />
-      <label>Total Amount with GST: </label>
+
+      <label>Total Process Cost: </label>
       <input
         type="number"
         name="totalAmount"
-        value={product.outhouseDetails.totalAmount  || ''}
+        value={product.inhouseDetails.totalAmount || ""}
         readOnly
       />
     </div>
   )}
+
+{product.processType === "outhouse" && (
+  <div>
+    <p>Out-House Details</p>
+
+    <label>Vendor Cost: </label>
+    <input
+      type="number"
+      name="vendorcost"
+      value={product.outhouseDetails.vendorcost || ""}
+      onChange={(e) =>
+        handleProcessDetailChange(index, "outhouse", "vendorcost", e.target.value)
+      }
+    />
+
+    <label>Transport Cost: </label>
+    <input
+      type="number"
+      name="transportcost"
+      value={product.outhouseDetails.transportcost || ""}
+      onChange={(e) =>
+        handleProcessDetailChange(index, "outhouse", "transportcost", e.target.value)
+      }
+    />
+
+    <label>Purchase Cost: </label>
+    <input
+      type="number"
+      name="purchasecost"
+      value={product.outhouseDetails.purchasecost || ""}
+      onChange={(e) =>
+        handleProcessDetailChange(index, "outhouse", "purchasecost", e.target.value)
+      }
+    />
+
+    <label>GST (%): </label>
+    <input
+      type="number"
+      name="gst"
+      value={product.outhouseDetails.gst || ""}
+      onChange={(e) => handleProcessDetailChange(index, "outhouse", "gst", e.target.value)}
+    />
+  </div>
+)}
+
 </td>
 
   
@@ -2266,7 +2329,7 @@ useEffect(() => {
   <div className="action">
     <button onClick={() => handleSaveProduct(product)}>Save</button>
     <button onClick={handleToggleBill}>
-      {isBillOpen ? 'Close Bill' : 'Generate Bill'}
+      {isBillOpen ? 'Close Bill' : 'Generate v Bill'}
     </button>
 
     {/* Bill overlay */}
