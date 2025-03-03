@@ -661,3 +661,83 @@ th, td {
 
 
 
+/* Dc Bill */
+/* Base Styles */
+.popup-content {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100% - 64px); /* Adjust for header height */
+  padding: 16px;
+}
+
+.popup-title {
+  text-align: center;
+  margin-top: 20px
+}
+
+.dc-bill-btn {
+  margin-left: 50px;
+}
+
+.popup-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.popup-table th,
+.popup-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.popup-table th {
+  background: #0a0909;
+  color: white;
+}
+
+.popup-table tr:hover {
+  background: #f9f9f9;
+}
+
+/* Reduced column width for specific fields */
+.popup-table .narrow-column {
+  width: 120px; /* Adjust width as needed */
+}
+
+.popup-card {
+  background: white;
+  width: 70%;
+  max-height: 70%;
+  border-radius: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-close-btn {
+  margin-left: 800px;
+  margin-top: -80px;
+}
+
+@media (max-width: 1000px) {
+  .popup-card {
+    width: 80%;
+    max-height: 80%;
+  }
+}
+
+@media (max-width: 780px) {
+  .popup-card {
+    width: 90%;
+    max-height: 85%;
+  }
+}
+
+@media (max-width: 400px) {
+  .popup-card {
+    width: 95%;
+    max-height: 90%;
+  }
+}

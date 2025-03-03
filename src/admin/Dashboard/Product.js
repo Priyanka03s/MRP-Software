@@ -67,7 +67,8 @@ const Product = () => {
   const [dynamicFields, setDynamicFields] = useState({});
   const [stockData, setStockData] = useState([]); // State for stock data
   const [showStockPage, setShowStockPage] = useState(false); 
-    
+  const [outhouseComponents, setOuthouseComponents] = useState([]);
+  const [isViewBillsOpen, setIsViewBillsOpen] = useState(false); // State for popup visibility
   const [companyDetails, setCompanyDetails] = useState({
     companyName: "",
     companyAddress: "",
@@ -411,7 +412,166 @@ const renderStockPage = () => {
 
 // Dc Bill
 
+const handleViewBills = async () => {
+  setIsViewBillsOpen(true);
 
+  try {
+    const productsRef = collection(
+      db,
+      "Users",
+      uid,
+      "Projects",
+      projectId,
+      "Products"
+    );
+    const q = query(productsRef, where("processType", "==", "outhouse"));
+    const querySnapshot = await getDocs(q);
+
+    const components = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      components.push({
+        componentNumber: data.componentNumber,
+        componentName: data.componentName,
+        materialName: data.materialName,
+        quantityTakenProcess: data.quantityTakenProcess,
+        projectName: data.projectName,
+        customerGST: data.customerGST || "",
+        customerName: data.customerName || "",
+        customerCompanyName: data.customerCompanyName || "",
+        customerCompanyAddress: data.customerCompanyAddress || "",
+        customerEccNo: data.customerEccNo || "",
+        companyName: data.companyName || "",
+        companyAddress: data.companyAddress || "",
+        eccNo: data.eccNo || "",
+        gstNO: data.gstNO || "",
+        phNumber: data.phNumber || "",
+        managerName: data.managerName || "",
+      });
+    });
+
+    setOuthouseComponents(components);
+  } catch (error) {
+    console.error("Error fetching components:", error);
+    alert("Failed to fetch Out-house components.");
+  }
+};
+
+const handleCloseViewBills = () => {
+  setIsViewBillsOpen(false);
+  setOuthouseComponents([]);
+};
+
+const handlePromptForDC = () => {
+  const componentName = prompt("Enter Component Name:");
+
+  if (!componentName) {
+    alert("Please enter a Component Name.");
+    return;
+  }
+
+  handleGenerateDC(componentName);
+};
+
+const handleGenerateDC = (componentName) => {
+  const filteredComponents = outhouseComponents.filter(
+    (component) => component.componentName === componentName
+  );
+
+  if (filteredComponents.length === 0) {
+    alert("No matching components found for the entered Component Name.");
+    return;
+  }
+
+  const {
+    gstNO,
+    phNumber,
+    companyName,
+    companyAddress,
+    customerName,
+    customerCompanyName,
+    customerCompanyAddress,
+    customerGST,
+  } = filteredComponents[0];
+
+  // Initialize jsPDF document
+  const doc = new jsPDF();
+
+  // Header Section
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Delivery Note", 105, 15, null, null, "center");
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`GST NO: ${gstNO}`, 10, 25);
+  doc.text(`Phone: ${phNumber}`, 200 - doc.getTextWidth(`Phone: ${phNumber}`) - 10, 25); // Right-align the phone number
+
+  // Company Details
+  doc.setFont("helvetica", "bold");
+  const companyNameWidth = doc.getTextWidth(companyName);
+  const companyNameCenterX = (doc.internal.pageSize.width - companyNameWidth) / 2;
+  doc.text(companyName, companyNameCenterX, 35);
+
+  doc.setFont("helvetica", "normal");
+  const companyAddressWidth = doc.getTextWidth(companyAddress);
+  const companyAddressCenterX = (doc.internal.pageSize.width - companyAddressWidth) / 2;
+  doc.text(companyAddress, companyAddressCenterX, 40);
+
+  // Customer Details
+  doc.text(`To: ${customerName}`, 10, 55);
+  doc.text(`M/S ${customerCompanyName}`, 10, 60);
+  doc.text(customerCompanyAddress, 10, 65);
+  doc.text(`GST No: ${customerGST}`, 10, 70);
+
+  // Draw Table with Borders
+  const tableStartY = 80;
+  doc.autoTable({
+    head: [["S.No", "Component Number", "Material Name", "Quantity"]],
+    body: filteredComponents.map(
+      ({ componentNumber, materialName, quantityTakenProcess }, index) => [
+        index + 1,
+        componentNumber,
+        materialName,
+        `${quantityTakenProcess} Nos`,
+      ]
+    ),
+    startY: tableStartY,
+    styles: {
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+      valign: "middle",
+      halign: "center",
+    },
+    headStyles: {
+      fillColor: [211, 211, 211],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+    },
+    bodyStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+    },
+  });
+
+  // Footer Section
+  const footerStartY = doc.lastAutoTable.finalY + 10;
+  doc.text("To Be Return After", 10, footerStartY);
+  doc.text("PAINTING", 20, footerStartY + 10);
+  doc.text("MACHINING", 20, footerStartY + 15);
+  doc.text("TESTING", 20, footerStartY + 20);
+
+  doc.setFont("helvetica", "bold");
+  doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right");
+
+  // Save the PDF
+  doc.save(`Delivery_Note_${componentName}.pdf`);
+  alert("Delivery Note PDF has been generated and downloaded.");
+};
+
+
+
+// ------x-----x-----x------x----->
 
 
 
@@ -592,7 +752,7 @@ const renderStockPage = () => {
         companyAddress,
         companyName,
         gstNo,
-        materialName,
+    
       } = productData;
   
       const totalAmount = quantity * parseFloat(materialCostWithGst);
@@ -1662,6 +1822,7 @@ useEffect(() => {
           </div>
         </div>
       )}
+    
     </div>
         <div className="Amount">
           <button onClick={handlePurchase}>Purchase</button>
@@ -1672,11 +1833,116 @@ useEffect(() => {
             onClick={handleStock}>
             View Stock
           </button>
+       
+        </div>
+        <div className="popup-container">
+      <button
+        onClick={handleViewBills}
+        className="btn-view-bills"
+      >
+        View DCC Bills
+      </button>
+
+      {isViewBillsOpen && (
+        <div className="popup-overlay">
+          <div className="popup-card">
+            <div className="popup-header">
+              <h2 className="popup-title">Out-house Components</h2>
+              <button
+                onClick={handleCloseViewBills}
+                className="popup-close-btn"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* DC BILL */}
+
+            <div className="popup-container">
+  <button onClick={handleViewBills} className="btn-view-bills">
+    View DC Bills
+  </button>
+
+  {isViewBillsOpen && (
+    <div className="popup-overlay">
+      <div className="popup-card">
+        <div className="popup-header">
+          <h4 className="popup-title">DC Out-source Components</h4>
+          <button className="dc-bill-btn" onClick={handlePromptForDC}>
+            Generate DC
+          </button>
+          <button onClick={handleCloseViewBills} className="popup-close-btn">
+            Close
+          </button>
+        </div>
+        <div className="popup-content">
+          
+          {outhouseComponents.length > 0 ? (
+            <table className="popup-table">
+              <thead>
+                <tr>
+                  <th  style={{width:'50px',textAlign:'center'}}>Project Name</th>
+                  <th style={{width:'50px', textAlign:'center'}}>Component Number</th>
+                  <th style={{width:'50px',textAlign:'center'}}>Component Name</th>
+                  <th style={{width:'70px',textAlign:'center'}}>Material Name</th>
+                  <th style={{width:'50px',textAlign:'center'}}>Quantity</th>
+                  <th>Customer Details</th>
+                  <th>Company details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {outhouseComponents.map((component, index) => (
+                  <tr key={index}>
+                    <td>{component.projectName}</td>
+                    <td>{component.componentNumber}</td>
+                    <td>{component.componentName}</td>
+                    <td>{component.materialName}</td>
+                    <td>{component.quantityTakenProcess}</td>
+                    <td>
+                    <strong>Gst No :</strong> {component.customerGST} <br/>
+                    <strong>Name :</strong>    {component.customerName}<br/>
+                    <strong>Company Name :</strong>    {component.customerCompanyName}<br/>
+                    <strong>Address :</strong>   {component.customerCompanyAddress}<br/>
+                    <strong>Ecc No :</strong>   {component.customerEccNo}
+                    </td>
+                    <td>
+                      <td>
+                        <strong>Company Name :</strong> {component.companyName}<br/>
+                        <strong>Address :</strong> {component.companyAddress}<br/>
+                        <strong>Ecc No :</strong>{component.eccNO}<br/>
+                        <strong>Gst No :</strong>  {component.gstNO}<br/>
+                        <strong>Ph No :</strong> {component.phNumber}<br/>
+                        <strong>Manager Name :</strong> {component.managerName}<br/>
+
+                        </td>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No Out-house components found.</p>
+          )}
         </div>
       </div>
-     
+    </div>
+  )}
+</div>;
+
+
+    {/* ---x--x--x--Dc----x---x-- */}
+          </div>
+        </div>
+      )}
+    </div>
+      </div>
       {showStockPage && renderStockPage()}
       {showPurchasePage ? renderPurchasePage() : <div></div>}
+     
+     
+
+
+    
 <div className='total'>
   <h5>{filterType === 'Inhouse' ? 'Inhouse Grand Total' : 'Outhouse Grand Total'}</h5>
   <p>({filterType}): {filterType === 'Inhouse' ? inhouseTotal : outhouseTotal}</p>
@@ -2129,6 +2395,12 @@ useEffect(() => {
       name="gst"
       value={product.outhouseDetails.gst || ""}
       onChange={(e) => handleProcessDetailChange(index, "outhouse", "gst", e.target.value)}
+    />
+    <label>Total Process Cost: </label>
+    <input
+      type="number"
+      value={product.outhouseDetails.totalAmount || ""}
+      readOnly
     />
   </div>
 )}
