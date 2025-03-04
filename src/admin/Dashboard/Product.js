@@ -302,7 +302,7 @@ const handleGenerateBillPO = () => {
 
 
 const handleStock = () => {
-  setStockData({
+  const updatedStockData = {
     toolsProcured: products.filter(
       (product) => product.processType === "Inhouse"
     ),
@@ -315,14 +315,92 @@ const handleStock = () => {
       componentName: product.componentName,
       balance: product.quantity || 0,
     })),
-  });
+  };
+  setStockData(updatedStockData);
   setShowStockPage(true);
 };
 
 const renderStockPage = () => {
+  const handleSaveStock = async () => {
+    try {
+      for (const product of products) {
+        const { componentNumber, componentName } = product;
+
+        const productRef = doc(
+          db,
+          "Users",
+          uid,
+          "Projects",
+          projectId,
+          "Products",
+          componentNumber
+        );
+
+        const toolsProcured = stockData.toolsProcured.find(
+          (tool) => tool.componentNumber === componentNumber
+        )?.quantity || 0;
+
+        const toolsPurchased = stockData.toolsPurchased.find(
+          (tool) => tool.componentNumber === componentNumber
+        )?.quantity || 0;
+
+        const toolsNeeded = stockData.toolsNeeded.some(
+          (tool) => tool.componentNumber === componentNumber
+        );
+
+        const inhouseBalance = await fetchInhouseBalance(componentNumber);
+        const outhouseBalance = await fetchOuthouseBalance(componentNumber);
+
+        const updatedData = {
+          toolsProcured,
+          toolsPurchased,
+          toolsNeeded,
+          balanceQuantity: {
+            inhouse: inhouseBalance,
+            outhouse: outhouseBalance,
+          },
+        };
+
+        await setDoc(productRef, updatedData, { merge: true });
+      }
+
+      alert("Stock details saved successfully!");
+    } catch (error) {
+      console.error("Error saving stock details:", error);
+      alert("Error saving stock details.");
+    }
+  };
+
+  const fetchInhouseBalance = async (componentNumber) => {
+    const balanceRef = doc(
+      db,
+      "Users",
+      uid,
+      "Projects",
+      projectId,
+      "InhouseBalances",
+      componentNumber
+    );
+    const balanceDoc = await getDoc(balanceRef);
+    return balanceDoc.exists() ? balanceDoc.data().balance : 0;
+  };
+
+  const fetchOuthouseBalance = async (componentNumber) => {
+    const balanceRef = doc(
+      db,
+      "Users",
+      uid,
+      "Projects",
+      projectId,
+      "OuthouseBalances",
+      componentNumber
+    );
+    const balanceDoc = await getDoc(balanceRef);
+    return balanceDoc.exists() ? balanceDoc.data().balance : 0;
+  };
+
   return (
     <div className="stock-page">
-      
       <div
         className="card-container"
         style={{
@@ -337,9 +415,11 @@ const renderStockPage = () => {
           backgroundColor: "#fff",
           margin: "0 auto",
         }}
-      > <h3 className="text-center text-lg font-semibold mb-4">Stock Details</h3>
+      >
+        <h3 className="text-center text-lg font-semibold mb-4">
+          Stock Details
+        </h3>
         <table style={{ width: "100%", minWidth: "600px" }}>
-       
           <thead>
             <tr style={{ backgroundColor: "#f5f5f5" }}>
               <th>Component Number</th>
@@ -348,7 +428,8 @@ const renderStockPage = () => {
               <th>Tools Procured</th>
               <th>Tools Purchased</th>
               <th>Tools Needed</th>
-              <th>Balance Quantity</th>
+              <th>Inhouse Balance</th>
+              <th>Outhouse Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -358,55 +439,115 @@ const renderStockPage = () => {
                 <td>{product.componentName || "Unknown"}</td>
                 <td>{product.materialName || "Unknown"}</td>
                 <td>
-                  {stockData.toolsProcured.some(
-                    (tool) => tool.componentNumber === product.componentNumber
-                  )
-                    ? product.quantity || "0"
-                    : "0"}
+                  <input
+                    type="text"
+                    value={
+                      stockData.toolsProcured.find(
+                        (tool) =>
+                          tool.componentNumber === product.componentNumber
+                      )?.quantity || ''
+                    }
+                    onChange={(e) =>
+                      updateStockData(
+                        "toolsProcured",
+                        product.componentNumber,
+                        e.target.value
+                      )
+                    }
+                  />
                 </td>
                 <td>
-                  {stockData.toolsPurchased.some(
-                    (tool) => tool.componentNumber === product.componentNumber
-                  )
-                    ? product.quantity || "0"
-                    : "0"}
+                  <input
+                    type="text"
+                    value={
+                      stockData.toolsPurchased.find(
+                        (tool) =>
+                          tool.componentNumber === product.componentNumber
+                      )?.quantity || ''
+                    }
+                    onChange={(e) =>
+                      updateStockData(
+                        "toolsPurchased",
+                        product.componentNumber,
+                        e.target.value
+                      )
+                    }
+                  />
                 </td>
                 <td>
-                  {stockData.toolsNeeded.some(
-                    (tool) => tool.componentNumber === product.componentNumber
-                  )
-                    ? "Yes"
-                    : "No"}
+                  <input
+                    type="checkbox"
+                    checked={stockData.toolsNeeded.some(
+                      (tool) => tool.componentNumber === product.componentNumber
+                    )}
+                    onChange={(e) =>
+                      updateStockData(
+                        "toolsNeeded",
+                        product.componentNumber,
+                        e.target.checked
+                      )
+                    }
+                  />
                 </td>
                 <td>
                   {stockData.balanceQuantity.find(
-                    (bal) =>
-                      bal.componentNumber === product.componentNumber
-                  )?.balance || "0"}
+                    (bal) => bal.componentNumber === product.componentNumber
+                  )?.inhouse || 0}
+                </td>
+                <td>
+                  {stockData.balanceQuantity.find(
+                    (bal) => bal.componentNumber === product.componentNumber
+                  )?.outhouse || 0}
                 </td>
               </tr>
-              
             ))}
           </tbody>
-          <button
-        onClick={() => setShowStockPage(false)}
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          backgroundColor: "#007bff",
-          color: "#fff",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        Back
-      </button>
         </table>
+        <button
+          onClick={handleSaveStock}
+          style={{
+            marginTop: "20px",
+            padding: "10px 20px",
+            backgroundColor: "#28a745",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Save Stock
+        </button>
+        <button
+          onClick={() => setShowStockPage(false)}
+          style={{
+            marginTop: "20px",
+            marginLeft: "10px",
+            padding: "10px 20px",
+            backgroundColor: "#007bff",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Back
+        </button>
       </div>
-      
     </div>
   );
+};
+
+const updateStockData = (type, componentNumber, value) => {
+  const updatedStockData = { ...stockData };
+  const itemIndex = updatedStockData[type].findIndex(
+    (item) => item.componentNumber === componentNumber
+  );
+  if (itemIndex !== -1) {
+    updatedStockData[type][itemIndex].quantity = value;
+  } else {
+    updatedStockData[type].push({ componentNumber, quantity: value });
+  }
+  setStockData(updatedStockData);
 };
 
 
@@ -497,38 +638,51 @@ const handleGenerateDC = (componentName) => {
   // Initialize jsPDF document
   const doc = new jsPDF();
 
-  // Header Section
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("Delivery Note", 105, 15, null, null, "center");
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`GST NO: ${gstNO}`, 10, 25);
-  doc.text(`Phone: ${phNumber}`, 200 - doc.getTextWidth(`Phone: ${phNumber}`) - 10, 25); // Right-align the phone number
+// Heading Section
+doc.setFont("helvetica", "bold");
+doc.setFontSize(16); // Set font size for the heading
+doc.text("Delivery Note", 105, 20, null, null, "center"); // Center the text at the top
 
-  // Company Details
-  doc.setFont("helvetica", "bold");
-  const companyNameWidth = doc.getTextWidth(companyName);
-  const companyNameCenterX = (doc.internal.pageSize.width - companyNameWidth) / 2;
-  doc.text(companyName, companyNameCenterX, 35);
+// GST Number and Phone
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+doc.text(`GST NO: ${gstNO}`, 10, 30); // Left-align GST number
+doc.text(`Phone: ${phNumber}`, 200 - doc.getTextWidth(`Phone: ${phNumber}`) - 10, 30); // Right-align Phone number
 
-  doc.setFont("helvetica", "normal");
-  const companyAddressWidth = doc.getTextWidth(companyAddress);
-  const companyAddressCenterX = (doc.internal.pageSize.width - companyAddressWidth) / 2;
-  doc.text(companyAddress, companyAddressCenterX, 40);
+// Company Name and Address
+doc.setFont("helvetica", "bold");
+doc.setFontSize(12);
+const companyNameWidth = doc.getTextWidth(companyName);
+const companyNameCenterX = (doc.internal.pageSize.width - companyNameWidth) / 2;
+doc.text(companyName, companyNameCenterX, 40);
 
-  // Customer Details
-  doc.text(`To: ${customerName}`, 10, 55);
-  doc.text(`M/S ${customerCompanyName}`, 10, 60);
-  doc.text(customerCompanyAddress, 10, 65);
-  doc.text(`GST No: ${customerGST}`, 10, 70);
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+const companyAddressWidth = doc.getTextWidth(companyAddress);
+const companyAddressCenterX = (doc.internal.pageSize.width - companyAddressWidth) / 2;
+doc.text(companyAddress, companyAddressCenterX, 45);
 
-  // Draw Table with Borders
-  const tableStartY = 80;
-  doc.autoTable({
-    head: [["S.No", "Component Number", "Material Name", "Quantity"]],
-    body: filteredComponents.map(
+// Customer Details
+doc.setFont("helvetica", "normal");
+doc.text("To:", 10, 55);
+doc.text(`M/S ${customerName}`, 10, 60);
+doc.text(`${customerCompanyName}`, 10, 65);
+doc.text(customerCompanyAddress, 10, 70);
+doc.text(`GST No: ${customerGST}`, 10, 75);
+
+// Calculate Total Quantity
+const totalQuantity = filteredComponents.reduce(
+  (sum, { quantityTakenProcess }) => sum + parseInt(quantityTakenProcess, 10),
+  0
+);
+
+// Table Section
+const tableStartY = 85;
+doc.autoTable({
+  head: [["S.No", "Component Number", "Material Name", "Quantity"]],
+  body: [
+    ...filteredComponents.map(
       ({ componentNumber, materialName, quantityTakenProcess }, index) => [
         index + 1,
         componentNumber,
@@ -536,33 +690,49 @@ const handleGenerateDC = (componentName) => {
         `${quantityTakenProcess} Nos`,
       ]
     ),
-    startY: tableStartY,
-    styles: {
-      lineColor: [0, 0, 0],
-      lineWidth: 0.5,
-      valign: "middle",
-      halign: "center",
-    },
-    headStyles: {
-      fillColor: [211, 211, 211],
-      textColor: [0, 0, 0],
-      fontStyle: "bold",
-    },
-    bodyStyles: {
-      fillColor: [255, 255, 255],
-      textColor: [0, 0, 0],
-    },
-  });
+    ["", "", "Total", `${totalQuantity} Nos`], // Add total row
+  ],
+  startY: tableStartY,
+  styles: {
+    lineColor: [0, 0, 0],
+    lineWidth: 0.5,
+    valign: "middle",
+    halign: "center",
+    fontSize: 10,
+    cellPadding: 5,
+  },
+  headStyles: {
+    fillColor: [211, 211, 211],
+    textColor: [0, 0, 0],
+    fontStyle: "bold",
+    halign: "center",
+  },
+  bodyStyles: {
+    fillColor: [255, 255, 255],
+    textColor: [0, 0, 0],
+    halign: "center",
+  },
+  columnStyles: {
+    0: { halign: "center", cellWidth: 15 }, // S.No
+    1: { halign: "center", cellWidth: 50 }, // Component Number
+    2: { halign: "center", cellWidth: 80 }, // Material Name
+    3: { halign: "center", cellWidth: 40 }, // Quantity
+  },
+});
 
-  // Footer Section
-  const footerStartY = doc.lastAutoTable.finalY + 10;
-  doc.text("To Be Return After", 10, footerStartY);
-  doc.text("PAINTING", 20, footerStartY + 10);
-  doc.text("MACHINING", 20, footerStartY + 15);
-  doc.text("TESTING", 20, footerStartY + 20);
+// Footer Section
+const footerStartY = doc.lastAutoTable.finalY + 10;
+doc.setFont("helvetica", "normal");
+doc.text("To Be Return After", 10, footerStartY);
+doc.text("PAINTING", 20, footerStartY + 10);
+doc.text("MACHINING", 20, footerStartY + 15);
+doc.text("TESTING", 20, footerStartY + 20);
 
-  doc.setFont("helvetica", "bold");
-  doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right");
+// Signatures
+doc.setFont("helvetica", "bold");
+doc.text("Customer's Signature", 10, footerStartY + 40); // Customer's signature on the left
+doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right"); // Company signature on the right
+
 
   // Save the PDF
   doc.save(`Delivery_Note_${componentName}.pdf`);
@@ -1941,7 +2111,7 @@ useEffect(() => {
      
      
 
-
+ 
     
 <div className='total'>
   <h5>{filterType === 'Inhouse' ? 'Inhouse Grand Total' : 'Outhouse Grand Total'}</h5>
