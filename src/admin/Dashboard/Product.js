@@ -69,112 +69,9 @@ const Product = () => {
   const [showStockPage, setShowStockPage] = useState(false); 
   const [outhouseComponents, setOuthouseComponents] = useState([]);
   const [isViewBillsOpen, setIsViewBillsOpen] = useState(false); // State for popup visibility
-  const [companyDetails, setCompanyDetails] = useState({
-    companyName: "",
-    companyAddress: "",
-    phNumber: "",
-    gstNO: "",
-    eccNo:"",
-    managerName:"",
-  });
-  const [showPopup, setShowPopup] = useState(false);
 
-  // Toggle popup visibility
-  const handlePopupToggle = () => {
-    setShowPopup(!showPopup);
-  };
-
-  // Fetch existing company details
-  useEffect(() => {
-    const fetchCompanyDetails = async () => {
-      if (!uid || !projectId) return;
-
-      try {
-        const companyRef = doc(
-          db,
-          "Users",
-          uid,
-          "Projects",
-          projectId,
-          "CompanyDetails",
-          "Details"
-        );
-        const companyDoc = await getDoc(companyRef);
-
-        if (companyDoc.exists()) {
-          setCompanyDetails(companyDoc.data());
-        }
-      } catch (error) {
-        console.error("Error fetching company details:", error);
-      }
-    };
-
-    fetchCompanyDetails();
-  }, [uid, projectId]);
-
-  // Watch for new products and apply company details
-  useEffect(() => {
-    if (!uid || !projectId) return;
-
-    const productsRef = collection(
-      db,
-      "Users",
-      uid,
-      "Projects",
-      projectId,
-      "Products"
-    );
-
-    const unsubscribe = onSnapshot(productsRef, (snapshot) => {
-      snapshot.docChanges().forEach(async (change) => {
-        if (change.type === "added") {
-          const productRef = change.doc.ref;
-          await setDoc(
-            productRef,
-            { ...companyDetails }, // Apply company details to the new product
-            { merge: true }
-          );
-        }
-      });
-    });
-
-    return () => unsubscribe();
-  }, [uid, projectId, companyDetails]);
-
-  // Handle form changes
-  const handleCompanyDetailsChange = (e) => {
-    const { name, value } = e.target;
-    setCompanyDetails((prevDetails) => ({ ...prevDetails, [name]: value }));
-  };
-
-  // Save company details explicitly
-  const handleSaveCompanyDetails = async () => {
-    if (!uid || !projectId) {
-      alert("User or Project ID is missing!");
-      return;
-    }
-
-    try {
-      // Reference to the specific document for company details
-      const companyRef = doc(
-        db,
-        "Users",
-        uid,
-        "Projects",
-        projectId,
-        "CompanyDetails",
-        "Details"
-      );
-
-      // Save company details
-      await setDoc(companyRef, companyDetails);
-
-      alert("Company details saved successfully!");
-    } catch (error) {
-      console.error("Error saving company details:", error);
-      alert("Error saving company details.");
-    }
-  };
+  
+ 
   useEffect(() => {
     const fetchData = async () => {
       if (!uid || !projectId) return;
@@ -1354,7 +1251,6 @@ doc.autoTable({
     }
     const newProduct = {
       componentNumber,
-      ...companyDetails, // Automatically include company details
       additionalField: '',
     };
     try {
@@ -1395,6 +1291,7 @@ doc.autoTable({
       alert("Error saving product.");
     }
   };
+ 
   const handleInputChange = (index, event) => {
     const { name, value } = event.target;
   
@@ -1938,62 +1835,9 @@ useEffect(() => {
           <button onClick={() => setFilterType("Outhouse")}>Outhouse</button>
           <button onClick={() => setFilterType("")}>Clear</button>
         </div>
-
-        <div>
-      <button onClick={handlePopupToggle}>Company Address</button>
-      {showPopup && (
-        <div className="popup">
-          <div className="popup-content">
-            <h3>Company Address Details</h3>
-            <input
-              type="text"
-              name="companyName"
-              placeholder="Company Name"
-              value={companyDetails.companyName}
-              onChange={handleCompanyDetailsChange}
-            />
-            <input
-              type="text"
-              name="companyAddress"
-              placeholder="Company Address"
-              value={companyDetails.companyAddress}
-              onChange={handleCompanyDetailsChange}
-            />
-            <input
-              type="text"
-              name="phNumber"
-              placeholder="Phone Number"
-              value={companyDetails.phNumber}
-              onChange={handleCompanyDetailsChange}
-            />
-            <input
-              type="text"
-              name="gstNO"
-              placeholder="GST Number"
-              value={companyDetails.gstNO}
-              onChange={handleCompanyDetailsChange}
-            />
-            <input
-              type="text"
-              name="eccNo"
-              placeholder="ECC Number"
-              value={companyDetails.eccNo}
-              onChange={handleCompanyDetailsChange}
-            />
-            <input
-              type="text"
-              name="managerName"
-              placeholder="Manager Name"
-              value={companyDetails.managerName}
-              onChange={handleCompanyDetailsChange}
-            />
-            <button onClick={handleSaveCompanyDetails}>Save</button>
-            <button onClick={handlePopupToggle}>Close</button>
-          </div>
-        </div>
-      )}
-    
-    </div>
+<div className='faceList'>
+      <button >Face List</button>
+</div>
         <div className="Amount">
           <button onClick={handlePurchase}>Purchase</button>
         </div>
@@ -2097,10 +1941,14 @@ useEffect(() => {
       </div>
     </div>
   )}
+   
+    
+   
 </div>;
 
 
     {/* ---x--x--x--Dc----x---x-- */}
+   
           </div>
         </div>
       )}
@@ -2111,7 +1959,7 @@ useEffect(() => {
      
      
 
- 
+     
     
 <div className='total'>
   <h5>{filterType === 'Inhouse' ? 'Inhouse Grand Total' : 'Outhouse Grand Total'}</h5>
@@ -2313,7 +2161,8 @@ useEffect(() => {
 
                   />
                   
-             
+               
+
                 </td>
                 <td>
                 <label>Material Name</label>

@@ -110,8 +110,9 @@ const Profile = () => {
           <p>Password: {userDetails.password}</p>
           <p>Phone Number: {userDetails.phoneNumber}</p>
           <p>Company Name: {userDetails.companyName}</p>
-
           <p>Address: {userDetails.address}</p>
+          <p>GST No: {userDetails.gstNo}</p>
+          <p>Ecc No: {userDetails.eccNo}</p>
           <button onClick={handleLogout}>Logout</button>
         </div>
       ) : (

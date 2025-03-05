@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../../firebaseCofig'; // Ensure the correct Firebase config path
 import { collection, addDoc, onSnapshot } from 'firebase/firestore';
@@ -10,8 +10,9 @@ const ProjectDetails = ({ uid }) => {
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showProjectList, setShowProjectList] = useState(false); // Track visibility of project list
-  const [showCreateButton, setShowCreateButton] = useState(true); // Track visibility of Create button
+  const [activeProjectId, setActiveProjectId] = useState(null); // Track active project for sidebar
+  const [components, setComponents] = useState({}); // Store components for each project
+
   const navigate = useNavigate();
 
   // Real-time listener for Firestore updates
@@ -60,6 +61,50 @@ const ProjectDetails = ({ uid }) => {
     }
   };
 
+  // Add a component to a project
+  const handleAddComponent = async (projectId) => {
+    if (!uid) {
+      console.error("User ID is missing. Unable to add components.");
+      return;
+    }
+
+    const componentNumber = prompt('Enter component number:');
+    if (!componentNumber) return;
+
+    try {
+      await addDoc(collection(db, 'Users', uid, 'Projects', projectId, 'Components'), {
+        number: componentNumber,
+      });
+    } catch (error) {
+      console.error('Error adding component:', error);
+    }
+  };
+
+  // Fetch components for a specific project
+  const handleToggleComponents = (projectId) => {
+    if (activeProjectId === projectId) {
+      setActiveProjectId(null); // Close the sidebar if it's already open
+      return;
+    }
+
+    const componentCollection = collection(db, 'Users', uid, 'Projects', projectId, 'Components');
+
+    onSnapshot(
+      componentCollection,
+      (snapshot) => {
+        const componentList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setComponents((prev) => ({ ...prev, [projectId]: componentList }));
+        setActiveProjectId(projectId);
+      },
+      (error) => {
+        console.error('Error fetching components:', error);
+      }
+    );
+  };
+
   // Navigate to project details
   const handleProjectClick = (projectId) => {
     navigate('/product', { state: { uid, projectId } });
@@ -75,8 +120,6 @@ const ProjectDetails = ({ uid }) => {
       )
     );
     setShowDropdown(true);
-    setShowProjectList(true); // Show project list when input is focused
-    setShowCreateButton(false); // Hide create button when typing
   };
 
   // Handle dropdown hide on blur
@@ -86,19 +129,8 @@ const ProjectDetails = ({ uid }) => {
 
   return (
     <div>
-      <h4
-        style={{
-          color: '#fff',
-          backgroundColor: '#007bff',
-          padding: '10px',
-          marginBottom: '50px',
-        }}
-      >
-        Plan & Create Your Projects Easily with Our Software!🚀
-      </h4>
-      <button className="create" onClick={handleCreateProject}>
-        Add
-      </button>
+      <h4 className="header">Plan & Create Your Projects Easily with Our Software!🚀</h4>
+      <button className="create" onClick={handleCreateProject}>Add</button>
       <div style={{ position: 'relative' }}>
         <input
           type="text"
@@ -110,75 +142,61 @@ const ProjectDetails = ({ uid }) => {
           onBlur={handleDropdownBlur}
         />
         {showDropdown && (
-          <div
-            className="dropdown"
-            style={{
-              position: 'absolute',
-              top: '40px',
-              left: '0',
-              right: '0',
-              background: '#fff',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              maxHeight: '150px',
-              overflowY: 'auto',
-              zIndex: '10',
-              boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
-            }}
-          >
+          <div className="dropdown">
             {filteredProjects.length > 0 ? (
               filteredProjects.map((project) => (
                 <div
                   key={project.id}
-                  style={{
-                    padding: '10px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #f1f1f1',
-                  }}
+                  className="dropdown-item"
                   onMouseDown={() => handleProjectClick(project.id)}
                 >
                   {project.name}
                 </div>
               ))
             ) : (
-              <p style={{ padding: '10px', color: '#666' }}>No projects found</p>
+              <p className="no-projects">No projects found</p>
             )}
           </div>
         )}
       </div>
-      {/* Show Project List only if showProjectList is true */}
-      {showProjectList && (
-        <div className="projectnames-list">
-          <h3
-            style={{
-              color: '#fff',
-              backgroundColor: '#007bff',
-              width: '180px',
-              paddingLeft: '10px',
-            }}
-          >
-            Project List
-          </h3>
-          <div className="project_body">
-            {isLoading ? (
-              <p></p>
-            ) : (
-              <ol style={{ color: '#000' }}>
-                {filteredProjects.map((project) => (
-                  <li key={project.id}>
-                    <div
-                      className="list-1"
-                      onClick={() => handleProjectClick(project.id)}
+
+      <div className="project-list">
+        {isLoading ? (
+          <p>Loading projects...</p>
+        ) : (
+          <ol>
+            {projects.map((project) => (
+              <li key={project.id} className="project-item">
+                <div className="project-name" onClick={() => handleProjectClick(project.id)}>
+                  {project.name}
+                </div>
+                <button
+                  className="toggle-components"
+                  onClick={() => handleToggleComponents(project.id)}
+                >
+                  +
+                </button>
+                {activeProjectId === project.id && (
+                  <div className="sidebar">
+                    <h4>Components</h4>
+                    <ul>
+                      {components[project.id]?.map((component) => (
+                        <li key={component.id}>{component.number}</li>
+                      ))}
+                    </ul>
+                    <button
+                      className="add-component"
+                      onClick={() => handleAddComponent(project.id)}
                     >
-                      {project.name}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        </div>
-      )}
+                      + Add Component
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,157 +1,107 @@
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-
+/* Base Styles */
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f0f2f5;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom right, #74b9ff, #a29bfe);
+  color: #2d3436;
 }
 
-
-.login {
-    background-color: white;
-    padding: 40px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    width: 100%;
-    max-width: 400px;
-    position: relative;
-    text-align: center;
+.login-container {
+  max-width: 600px;
+  margin: 5% auto;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-
-.login h2 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #333;
-    font-weight: bold;
-    text-align: center;
-    letter-spacing: 1px;
+.toggle-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  width: 250px;
+  padding: 5px;
 }
 
-.input-container {
-    position: relative;
-    margin-bottom: 20px;
+.toggle-buttons button {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  background: #dfe6e9;
+  color: #2d3436;
+  transition: background 0.3s, color 0.3s;
 }
 
-
-.login input {
-    width: 100%;
-    padding: 12px;
-    padding-left: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-    background-color: transparent;
-    outline: none;
-    z-index: 1;
-    position: relative;
+.toggle-buttons button.active {
+  background: #0984e3;
+  color: #ffffff;
 }
 
-
-.login input:focus {
-    border-color: #007bff;
-    outline: none;
+.toggle-buttons button:not(:last-child) {
+  margin-right: 10px;
 }
 
-
-.login input::placeholder {
-    color: #888;
-    font-size: 16px;
+.login-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-
-.login button {
-    width: 100%;
-    padding: 12px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
+.login-form h2 {
+  margin-bottom: 20px;
+  color: #2d3436;
 }
 
-.login button:hover {
-    background-color: #0056b3;
+.login-form input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #b2bec3;
+  border-radius: 5px;
 }
 
-.login p {
-    text-align: center;
-    margin: 10px 0 0 0;
+.login-form button {
+  width: 100%;
+  padding: 10px;
+  background: #0984e3;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-
-.login a {
-    color: #007bff;
-    text-decoration: none;
+.login-form button:hover {
+  background: #74b9ff;
 }
 
-.login a:hover {
-    text-decoration: underline;
+.login-form p {
+  margin-top: 10px;
 }
 
-@media (max-width: 768px) {
-    .Full {
-      padding: 20px;
-    }
-  
-    .login {
-      width: 100%;
-      padding: 15px;
-      margin: 10px auto;
-      box-shadow: none;
-    }
-  
-    .login h2 {
-      font-size: 1.5em;
-    }
-  
-    .input-container {
-      margin-bottom: 15px;
-    }
-  
-    .input-fields {
-      font-size: 1em;
-      padding: 10px;
-      width: 100%;
-    }
-  
-    button {
-      font-size: 1em;
-      padding: 10px;
-      width: 100%;
-    }
-  
-    p {
-      font-size: 0.9em;
-    }
+.login-form a {
+  color: #0984e3;
+  text-decoration: none;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .login-container {
+    margin: 10% auto;
+    padding: 15px;
   }
-  
-  @media (max-width: 480px) {
-    .login h2 {
-      font-size: 1.2em;
-    }
-  
-    .input-fields,
-    button {
-      font-size: 0.9em;
-    }
-    .Full{
-      margin-right: 50px;
-      width: 340px;
-    }
-    .login-1{
-      margin-top: 70px;
-    }
+
+  .toggle-buttons button {
+    font-size: 14px;
   }
-  
+
+  .login-form input {
+    font-size: 14px;
+  }
+
+  .login-form button {
+    font-size: 14px;
+  }
+}
