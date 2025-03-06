@@ -792,3 +792,155 @@ th, td {
     transform: translateX(0);
   }
 }
+.sidemenu{
+  margin-top: -50px;
+  margin-left: 1180px;
+}
+
+
+/* ------------------------------------------Side Bar------------------------------------------------------ */
+
+/* General sidebar styling */
+.sidebar-container {
+  position: relative;
+  margin-top: -70px;
+  margin-left: 1200px;
+}
+
+.toggle-button {
+  font-size: 20px;
+  padding: 10px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin: 10px;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background: #222;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.sidebar-button {
+  background: #444;
+  color: white;
+  padding: 10px;
+  border: none;
+  margin: 5px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar-button:hover {
+  background: #666;
+}
+
+/* Component List */
+.component-list {
+  padding: 10px;
+  background: #333;
+  margin-top: 10px;
+  border-radius: 5px;
+}
+
+.component-button {
+  background: #555;
+  color: white;
+  padding: 8px;
+  margin: 5px;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+}
+
+.component-button:hover {
+  background: #777;
+}
+
+/* Full-screen popup styling */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.popup {
+  background: white;
+  width: 80%;
+  max-width: 800px;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.popup h3,
+.popup h2 {
+  margin-bottom: 15px;
+}
+
+.popup-content {
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+/* Close button */
+.popup-close-btn {
+  background: red;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.popup-close-btn:hover {
+  background: darkred;
+}
+
+/* Popup table styling */
+.popup-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.popup-table th,
+.popup-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+
+.popup-table th {
+  background: #f4f4f4;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../../firebaseCofig'; // Ensure the correct Firebase config path
-import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot,getDocs } from 'firebase/firestore';
 import './Project.css';
 
 const ProjectDetails = ({ uid }) => {
@@ -62,23 +62,69 @@ const ProjectDetails = ({ uid }) => {
   };
 
   // Add a component to a project
-  const handleAddComponent = async (projectId) => {
-    if (!uid) {
-      console.error("User ID is missing. Unable to add components.");
+ // Add a component to the Products collection of a project
+const handleAddComponent = async (projectId) => {
+  if (!uid) {
+    console.error("User ID is missing. Unable to add components.");
+    return;
+  }
+
+  const componentNumber = prompt('Enter Component Number:');
+  if (!componentNumber) return;
+
+  try {
+    // Check for duplicate component numbers within the same project
+    const productCollectionRef = collection(db, 'Users', uid, 'Projects', projectId, 'Products');
+    const snapshot = await getDocs(productCollectionRef);
+
+    const isDuplicate = snapshot.docs.some(
+      (doc) => doc.data().componentNumber === componentNumber
+    );
+
+    if (isDuplicate) {
+      alert('This component number already exists in this project. Please use a different number.');
       return;
     }
 
-    const componentNumber = prompt('Enter component number:');
-    if (!componentNumber) return;
+    // Add the component number as part of a new product
+    const newProduct = {
+      purchaseNumber:'',
+      purchaseQty:'',
+      orderDate:'',
+      componentNumber,
+      componentName: '',
+      hsnCode:'',
+      quantity: '',
+      materialName: '',
+      invoiceNumber: '',
+      materialCost: '',
+      materialGst: '',
+      materialTotalWithGst: '',
+      processType: '',
+      inhouseDetails: { laborCostPerHour: '', totalWorkingHours: '', totalAmount: '' },
+      outhouseDetails: { vendorcost: '', transportcost: '', purchasecost: '', gst: '', totalAmount: '' },
+      inhouseStatus: {
+        processing: { color: 'yellow', timestamp: '' },
+        completed: { color: 'green', timestamp: '' },
+        notProcessing: { color: 'red', timestamp: '' },
+      },
+      vendorInfo: '',
+      vendorStatus: 'Status Not Available',
+      projectName,
+      rejectionQuantity: '',
+      unprocessedCost:'' ,// Initialize rejectionQuantity
+      reasonForRejection: '',
+      lossInProcess:''
+    };
 
-    try {
-      await addDoc(collection(db, 'Users', uid, 'Projects', projectId, 'Components'), {
-        number: componentNumber,
-      });
-    } catch (error) {
-      console.error('Error adding component:', error);
-    }
-  };
+    await addDoc(productCollectionRef, newProduct);
+
+    alert('Component added successfully to the Products collection!');
+  } catch (error) {
+    console.error('Error adding component to Products:', error);
+    alert('Error adding component to Products.');
+  }
+};
 
   // Fetch components for a specific project
   const handleToggleComponents = (projectId) => {
@@ -86,25 +132,33 @@ const ProjectDetails = ({ uid }) => {
       setActiveProjectId(null); // Close the sidebar if it's already open
       return;
     }
-
+  
+    // Fetch both components and products for the project
     const componentCollection = collection(db, 'Users', uid, 'Projects', projectId, 'Components');
-
-    onSnapshot(
-      componentCollection,
-      (snapshot) => {
+    const productCollection = collection(db, 'Users', uid, 'Projects', projectId, 'Products');
+  
+    Promise.all([
+      onSnapshot(componentCollection, (snapshot) => {
         const componentList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
         setComponents((prev) => ({ ...prev, [projectId]: componentList }));
-        setActiveProjectId(projectId);
-      },
-      (error) => {
-        console.error('Error fetching components:', error);
-      }
-    );
+      }),
+      onSnapshot(productCollection, (snapshot) => {
+        const productList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setComponents((prev) => ({
+          ...prev,
+          [projectId]: [...(prev[projectId] || []), ...productList],
+        }));
+      }),
+    ])
+      .then(() => setActiveProjectId(projectId))
+      .catch((error) => console.error('Error fetching components or products:', error));
   };
-
   // Navigate to project details
   const handleProjectClick = (projectId) => {
     navigate('/product', { state: { uid, projectId } });
@@ -160,7 +214,7 @@ const ProjectDetails = ({ uid }) => {
         )}
       </div>
 
-      <div className="project-list">
+      <div class="project-container">
         {isLoading ? (
           <p>Loading projects...</p>
         ) : (
@@ -171,27 +225,29 @@ const ProjectDetails = ({ uid }) => {
                   {project.name}
                 </div>
                 <button
-                  className="toggle-components"
+                  className="toggle-components project-add-icon"
                   onClick={() => handleToggleComponents(project.id)}
                 >
                   +
                 </button>
                 {activeProjectId === project.id && (
-                  <div className="sidebar">
-                    <h4>Components</h4>
-                    <ul>
-                      {components[project.id]?.map((component) => (
-                        <li key={component.id}>{component.number}</li>
-                      ))}
-                    </ul>
-                    <button
-                      className="add-component"
-                      onClick={() => handleAddComponent(project.id)}
-                    >
-                      + Add Component
-                    </button>
-                  </div>
-                )}
+  <div className="sidebar">
+    <h4>Components & Products</h4>
+    <ul>
+      {components[project.id]?.map((component) => (
+        <li key={component.id}>
+          {component.number || component.componentNumber || 'Unnamed Component'}
+        </li>
+      ))}
+    </ul>
+    {/* <button
+      className="add-component"
+      onClick={() => handleAddComponent(project.id)}
+    >
+      + Add Component
+    </button> */}
+  </div>
+)}
               </li>
             ))}
           </ol>

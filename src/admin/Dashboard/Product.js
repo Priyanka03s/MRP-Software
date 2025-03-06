@@ -69,7 +69,11 @@ const Product = () => {
   const [showStockPage, setShowStockPage] = useState(false); 
   const [outhouseComponents, setOuthouseComponents] = useState([]);
   const [isViewBillsOpen, setIsViewBillsOpen] = useState(false); // State for popup visibility
-
+  const [faceList, setFaceList] = useState([]);
+  const [showFaceList, setShowFaceList] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [processQuantities, setProcessQuantities] = useState({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
  
   useEffect(() => {
@@ -100,6 +104,41 @@ const Product = () => {
 
 
 
+  // Side bar
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  }; 
+
+
+// face List 
+
+
+
+const handleFaceListClick = () => {
+  const componentNumbers = products.map((product) => product.componentNumber);
+  setFaceList(componentNumbers);
+  setShowFaceList(true);
+};
+const handleComponentClick = (componentNumber) => {
+  const selectedProduct = products.find((product) => product.componentNumber === componentNumber);
+  if (selectedProduct) {
+    const { purchaseQty, quantityTakenProcess = 0 } = selectedProduct;
+    const faces = [];
+    let remainingQty = purchaseQty - quantityTakenProcess;
+
+    // Generate face details based on the remaining quantity
+    for (let i = 1; remainingQty > 0; i++) {
+      const faceQty = Math.min(remainingQty, quantityTakenProcess);
+      faces.push({ face: `Face ${i}`, quantity: faceQty });
+      remainingQty -= faceQty;
+    }
+
+    setProcessQuantities({ ...processQuantities, [componentNumber]: faces });
+    setSelectedComponent({ componentNumber, faces });
+  }
+};
+// ---------------x---------------x---------------x--------------------x---------------------------x------------------------x-------
 
 // Bill for PO
 
@@ -648,12 +687,14 @@ doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right")
     setPurchaseData(products);
     setShowPurchasePage(true);
   };
-  const handleDropdowns = (field, index) => {
-    const dropdownValues = [
-      ...new Set(products.map((product) => product[field])),
-    ].filter(Boolean);
-    alert(`Select a value for ${field}: ${dropdownValues.join(", ")}`);
-  };
+  // const handleDropdowns = (field, index) => {
+  //   const dropdownValues = [
+  //     ...new Set(products.map((product) => product[field])),
+  //   ].filter(Boolean);
+  //   alert(`Select a value for ${field}: ${dropdownValues.join(", ")}`);
+  // };
+
+
   
   const renderPurchasePage = () => {
     return (
@@ -1480,92 +1521,99 @@ doc.autoTable({
 
   const handleProcessTypeClick = async (index, type) => {
     const newProducts = [...products];
-  
+
     if (type === "addictive" || type === "foaming") {
-      // No scrap scenario
-      newProducts[index].scrapWeight = "No Scrap";
-      newProducts[index].scrapWeightUnit = ""; // No unit for "No Scrap"
-      newProducts[index].scrapCost = "No Scrap";
-      setSelectedProcessType(type);
+        // No scrap scenario
+        newProducts[index].scrapWeight = "No Scrap";
+        newProducts[index].scrapWeightUnit = ""; // No unit for "No Scrap"
+        newProducts[index].scrapCost = "No Scrap";
+        newProducts[index].totalScrapCost = "No Scrap";
+        setSelectedProcessType(type);
     } else if (type === "subtractive") {
-      // Subtractive process with scrap calculations
-  
-      // Prompt for weight unit
-      let weightUnit = prompt("Enter the unit of weight (grams/kg):");
-      if (!weightUnit) {
-        alert("Process canceled or no input provided for weight unit.");
-        return;
-      }
-  
-      weightUnit = weightUnit.toLowerCase().trim();
-      if (weightUnit !== "grams" && weightUnit !== "kg") {
-        alert("Invalid weight unit! Please enter 'grams' or 'kg'.");
-        return;
-      }
-  
-      // Prompt for processed material weight
-      const processedMaterialWeightInput = prompt(
-        `Enter Processed Material Weight (${weightUnit}):`
-      );
-      if (!processedMaterialWeightInput) {
-        alert("Process canceled or no input provided for processed material weight.");
-        return;
-      }
-  
-      const processedMaterialWeight = parseFloat(processedMaterialWeightInput);
-      if (isNaN(processedMaterialWeight) || processedMaterialWeight <= 0) {
-        alert("Invalid weight! Please enter a positive numeric value.");
-        return;
-      }
-  
-      // Convert weight to grams if entered in kilograms
-      const processedMaterialWeightInGrams =
-        weightUnit === "kg" ? processedMaterialWeight * 1000 : processedMaterialWeight;
-  
-      const rawMaterialWeight = parseFloat(newProducts[index].materialWeightPerGrams) || 0;
-      const scrapWeight = rawMaterialWeight - processedMaterialWeightInGrams;
-  
-      if (scrapWeight < 0) {
-        alert("Processed weight cannot exceed raw material weight!");
-        return;
-      }
-  
-      const materialCostPerKg = parseFloat(newProducts[index].materialCostPerKg) || 0;
-      const gstPercentage = parseFloat(newProducts[index].gstPercentage) || 0;
-  
-      const totalMaterialCostPerKg = (materialCostPerKg / 1000) * scrapWeight;
-      const materialCostWithGst =
-        totalMaterialCostPerKg + (totalMaterialCostPerKg * gstPercentage) / 100;
-  
-      // Store calculated scrap weight and unit
-      newProducts[index].scrapWeight =
-        weightUnit === "kg" ? (scrapWeight / 1000).toFixed(3) : scrapWeight.toFixed(3);
-      newProducts[index].scrapWeightUnit = weightUnit === "kg" ? "kg" : "grams";
-      newProducts[index].scrapCost = materialCostWithGst.toFixed(3);
-      setSelectedProcessType("subtractive");
+        // Subtractive process with scrap calculations
+
+        // Prompt for weight unit
+        let weightUnit = prompt("Enter the unit of weight (grams/kg):");
+        if (!weightUnit) {
+            alert("Process canceled or no input provided for weight unit.");
+            return;
+        }
+
+        weightUnit = weightUnit.toLowerCase().trim();
+        if (weightUnit !== "grams" && weightUnit !== "kg") {
+            alert("Invalid weight unit! Please enter 'grams' or 'kg'.");
+            return;
+        }
+
+        // Prompt for processed material weight
+        const processedMaterialWeightInput = prompt(
+            `Enter Processed Material Weight (${weightUnit}):`
+        );
+        if (!processedMaterialWeightInput) {
+            alert("Process canceled or no input provided for processed material weight.");
+            return;
+        }
+
+        const processedMaterialWeight = parseFloat(processedMaterialWeightInput);
+        if (isNaN(processedMaterialWeight) || processedMaterialWeight <= 0) {
+            alert("Invalid weight! Please enter a positive numeric value.");
+            return;
+        }
+
+        // Convert weight to grams if entered in kilograms
+        const processedMaterialWeightInGrams =
+            weightUnit === "kg" ? processedMaterialWeight * 1000 : processedMaterialWeight;
+
+        const rawMaterialWeight = parseFloat(newProducts[index].materialWeightPerGrams) || 0;
+        const scrapWeight = rawMaterialWeight - processedMaterialWeightInGrams;
+
+        if (scrapWeight < 0) {
+            alert("Processed weight cannot exceed raw material weight!");
+            return;
+        }
+
+        const materialCostPerKg = parseFloat(newProducts[index].materialCostPerKg) || 0;
+        const gstPercentage = parseFloat(newProducts[index].gstPercentage) || 0;
+        const totalQuantity = parseFloat(newProducts[index].totalQuantity) || 1;
+
+        // Calculate the scrap cost
+        const scrapWeightInKg = scrapWeight / 1000;
+        const materialCostWithGst = materialCostPerKg + (materialCostPerKg * gstPercentage) / 100;
+        const scrapCost = scrapWeightInKg * materialCostWithGst;
+        const totalScrapCost = scrapCost * totalQuantity;
+
+        // Store calculated scrap weight and unit
+        newProducts[index].scrapWeight =
+            weightUnit === "kg" ? (scrapWeight / 1000).toFixed(3) : scrapWeight.toFixed(3);
+        newProducts[index].scrapWeightUnit = weightUnit === "kg" ? "kg" : "grams";
+        newProducts[index].scrapCost = scrapCost.toFixed(3);
+        newProducts[index].totalScrapCost = totalScrapCost.toFixed(3);
+        setSelectedProcessType("subtractive");
     }
-  
+
     setProducts(newProducts);
-  
+
     // Store the data in Firebase
     try {
-      await db.collection("products").doc(newProducts[index].id).set(
-        {
-          processType: type,
-          scrapWeight: newProducts[index].scrapWeight || 0,
-          scrapWeightUnit: newProducts[index].scrapWeightUnit || "",
-          scrapCost: newProducts[index].scrapCost || 0,
-        },
-        { merge: true }
-      );
-      console.log("Data stored successfully");
+        await db.collection("products").doc(newProducts[index].id).set(
+            {
+                processType: type,
+                scrapWeight: newProducts[index].scrapWeight || 0,
+                scrapWeightUnit: newProducts[index].scrapWeightUnit || "",
+                scrapCost: newProducts[index].scrapCost || 0,
+                totalScrapCost: newProducts[index].totalScrapCost || 0,
+                quantity: newProducts[index].quantity || 1,
+            },
+            { merge: true }
+        );
+        console.log("Data stored successfully");
     } catch (error) {
-      console.error("Error storing data:", error);
+        console.error("Error storing data:", error);
     }
-  
+
     console.log("Updated Product after process type click:", newProducts);
-  };
-  
+};
+
   
   
 
@@ -1819,8 +1867,151 @@ useEffect(() => {
       <div className="table_header">
         <h3>Product List</h3>
         <h3>Project Name: {projectName}</h3>
-      </div>
+        <div className="sidebar-container">
+      <button onClick={toggleSidebar} className="toggle-button">
+        ☰ 
+      </button>
 
+      {isSidebarOpen && (
+        <div className='sidebar'>
+          
+          <div>
+            <button>
+              Profit Details
+            </button>
+          </div>
+          <div>
+            <button onClick={handleFaceListClick}>Face List</button>
+          
+
+          {showFaceList && (
+            <div className="componentList">
+              <h3>Component Numbers</h3>
+              {faceList.map((componentNumber) => (
+                <div key={componentNumber}>
+                  <button onClick={() => handleComponentClick(componentNumber)}>
+                    {componentNumber}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedComponent && (
+            <div className="faceDetails">
+              <h3>Face Details for Component {selectedComponent.componentNumber}</h3>
+              <ul>
+                {selectedComponent.faces.map((face) => (
+                  <li key={face.face}>
+                    {face.face}: {face.quantity}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+</div>
+          <div className="Amount popup-container">
+            <button onClick={handlePurchase}>Purchase</button>
+          </div>
+
+          <div className="popup-container">
+            <button onClick={handleStock}>View Stock</button>
+          </div>
+
+          <div className="popup-container">
+            <button onClick={handleViewBills} className="btn-view-bills">
+              View DCC Bills
+            </button>
+
+            {isViewBillsOpen && (
+              <div className="popup-overlay">
+                <div className="popup-card">
+                  <div className="popup-header">
+                    <h2 className="popup-title">Out-house Components</h2>
+                    <button onClick={handleCloseViewBills} className="popup-close-btn">
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="popup-content">
+                    <button onClick={handleViewBills} className="btn-view-bills">
+                      View DC Bills
+                    </button>
+
+                    {isViewBillsOpen && (
+                      <div className="popup-overlay">
+                        <div className="popup-card">
+                          <div className="popup-header">
+                            <h4 className="popup-title">DC Out-source Components</h4>
+                            <button className="dc-bill-btn" onClick={handlePromptForDC}>
+                              Generate DC
+                            </button>
+                            <button onClick={handleCloseViewBills} className="popup-close-btn">
+                              Close
+                            </button>
+                          </div>
+                          <div className="popup-content">
+                            {outhouseComponents.length > 0 ? (
+                              <table className="popup-table">
+                                <thead>
+                                  <tr>
+                                    <th style={{ width: "50px", textAlign: "center" }}>Project Name</th>
+                                    <th style={{ width: "50px", textAlign: "center" }}>Component Number</th>
+                                    <th style={{ width: "50px", textAlign: "center" }}>Component Name</th>
+                                    <th style={{ width: "70px", textAlign: "center" }}>Material Name</th>
+                                    <th style={{ width: "50px", textAlign: "center" }}>Quantity</th>
+                                    <th>Customer Details</th>
+                                    <th>Company details</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {outhouseComponents.map((component, index) => (
+                                    <tr key={index}>
+                                      <td>{component.projectName}</td>
+                                      <td>{component.componentNumber}</td>
+                                      <td>{component.componentName}</td>
+                                      <td>{component.materialName}</td>
+                                      <td>{component.quantityTakenProcess}</td>
+                                      <td>
+                                        <strong>Gst No :</strong> {component.customerGST} <br />
+                                        <strong>Name :</strong> {component.customerName} <br />
+                                        <strong>Company Name :</strong> {component.customerCompanyName} <br />
+                                        <strong>Address :</strong> {component.customerCompanyAddress} <br />
+                                        <strong>Ecc No :</strong> {component.customerEccNo}
+                                      </td>
+                                      <td>
+                                        <strong>Company Name :</strong> {component.companyName} <br />
+                                        <strong>Address :</strong> {component.companyAddress} <br />
+                                        <strong>Ecc No :</strong> {component.eccNO} <br />
+                                        <strong>Gst No :</strong> {component.gstNO} <br />
+                                        <strong>Ph No :</strong> {component.phNumber} <br />
+                                        <strong>Manager Name :</strong> {component.managerName} <br />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p>No Out-house components found.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {showStockPage && renderStockPage()}
+          {showPurchasePage ? renderPurchasePage() : <div></div>}
+        </div>
+      )}
+    </div>
+      </div>
+       
+  
       <div className="view">
         <div
           className="Amount"
@@ -1835,131 +2026,10 @@ useEffect(() => {
           <button onClick={() => setFilterType("Outhouse")}>Outhouse</button>
           <button onClick={() => setFilterType("")}>Clear</button>
         </div>
-<div className='faceList'>
-      <button >Face List</button>
-</div>
-        <div className="Amount">
-          <button onClick={handlePurchase}>Purchase</button>
-        </div>
+     
 
-        <div>
-          <button
-            onClick={handleStock}>
-            View Stock
-          </button>
-       
-        </div>
-        <div className="popup-container">
-      <button
-        onClick={handleViewBills}
-        className="btn-view-bills"
-      >
-        View DCC Bills
-      </button>
 
-      {isViewBillsOpen && (
-        <div className="popup-overlay">
-          <div className="popup-card">
-            <div className="popup-header">
-              <h2 className="popup-title">Out-house Components</h2>
-              <button
-                onClick={handleCloseViewBills}
-                className="popup-close-btn"
-              >
-                Close
-              </button>
-            </div>
-
-            {/* DC BILL */}
-
-            <div className="popup-container">
-  <button onClick={handleViewBills} className="btn-view-bills">
-    View DC Bills
-  </button>
-
-  {isViewBillsOpen && (
-    <div className="popup-overlay">
-      <div className="popup-card">
-        <div className="popup-header">
-          <h4 className="popup-title">DC Out-source Components</h4>
-          <button className="dc-bill-btn" onClick={handlePromptForDC}>
-            Generate DC
-          </button>
-          <button onClick={handleCloseViewBills} className="popup-close-btn">
-            Close
-          </button>
-        </div>
-        <div className="popup-content">
-          
-          {outhouseComponents.length > 0 ? (
-            <table className="popup-table">
-              <thead>
-                <tr>
-                  <th  style={{width:'50px',textAlign:'center'}}>Project Name</th>
-                  <th style={{width:'50px', textAlign:'center'}}>Component Number</th>
-                  <th style={{width:'50px',textAlign:'center'}}>Component Name</th>
-                  <th style={{width:'70px',textAlign:'center'}}>Material Name</th>
-                  <th style={{width:'50px',textAlign:'center'}}>Quantity</th>
-                  <th>Customer Details</th>
-                  <th>Company details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {outhouseComponents.map((component, index) => (
-                  <tr key={index}>
-                    <td>{component.projectName}</td>
-                    <td>{component.componentNumber}</td>
-                    <td>{component.componentName}</td>
-                    <td>{component.materialName}</td>
-                    <td>{component.quantityTakenProcess}</td>
-                    <td>
-                    <strong>Gst No :</strong> {component.customerGST} <br/>
-                    <strong>Name :</strong>    {component.customerName}<br/>
-                    <strong>Company Name :</strong>    {component.customerCompanyName}<br/>
-                    <strong>Address :</strong>   {component.customerCompanyAddress}<br/>
-                    <strong>Ecc No :</strong>   {component.customerEccNo}
-                    </td>
-                    <td>
-                      <td>
-                        <strong>Company Name :</strong> {component.companyName}<br/>
-                        <strong>Address :</strong> {component.companyAddress}<br/>
-                        <strong>Ecc No :</strong>{component.eccNO}<br/>
-                        <strong>Gst No :</strong>  {component.gstNO}<br/>
-                        <strong>Ph No :</strong> {component.phNumber}<br/>
-                        <strong>Manager Name :</strong> {component.managerName}<br/>
-
-                        </td>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No Out-house components found.</p>
-          )}
-        </div>
       </div>
-    </div>
-  )}
-   
-    
-   
-</div>;
-
-
-    {/* ---x--x--x--Dc----x---x-- */}
-   
-          </div>
-        </div>
-      )}
-    </div>
-      </div>
-      {showStockPage && renderStockPage()}
-      {showPurchasePage ? renderPurchasePage() : <div></div>}
-     
-     
-
-     
     
 <div className='total'>
   <h5>{filterType === 'Inhouse' ? 'Inhouse Grand Total' : 'Outhouse Grand Total'}</h5>
@@ -1967,31 +2037,44 @@ useEffect(() => {
 
   <div style={{ display: 'flex', position: 'relative', flexDirection: 'column', width: '300px' }}>
   <div style={{ display: 'flex', flexDirection: 'column', width: '300px', position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <input
-          id="searchComponentInput"
-          type="text"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onClick={handleSearchClick}
-          placeholder="Search Component"
-          style={{
-            padding: '8px',
-            width: '200px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor:'pointer'
-          }}
-        />
-        <SearchIcon
-          style={{
-            fontSize: '24px',
-            color: 'gray',
-            marginLeft: '8px',
-            cursor: 'pointer',
-          }}
-        />
-      </div>
+  <div style={{ position: 'relative', width: '260px' }}>
+  <input
+    id="searchComponentInput"
+    type="text"
+    value={searchValue}
+    onChange={(e) => setSearchValue(e.target.value)}
+    onClick={handleSearchClick}
+    placeholder="Search Component"
+    style={{
+      padding: '10px 40px 10px 12px', // Space for the icon
+      width: '100%',
+      border: '2px solid #ccc',
+      borderRadius: '6px',
+      outline: 'none',
+      transition: 'all 0.3s ease-in-out',
+      fontSize: '14px',
+      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    }}
+    onFocus={(e) => (e.target.style.border = '2px solid #007BFF')}
+    onBlur={(e) => (e.target.style.border = '2px solid #ccc')}
+  />
+  <SearchIcon
+    style={{
+      position: 'absolute',
+     left:'300px',
+      top: '60%',
+      transform: 'translateY(-50%)',
+      fontSize: '20px',
+      color: '#777',
+      cursor: 'pointer',
+      transition: 'color 0.3s ease-in-out',
+    }}
+    onMouseEnter={(e) => (e.target.style.color = '#007BFF')}
+    onMouseLeave={(e) => (e.target.style.color = '#777')}
+  />
+</div>
+
+
 
       {dropdownVisible && (
         <div
@@ -2050,15 +2133,7 @@ useEffect(() => {
     
 
      
-         {/* <div className='Money'>
-          <label htmlFor="currency">Currency: </label>
-          <select id="currency" onChange={handleCurrencyChange} value={currency}>
-            <option value="USD">USD</option>
-            <option value="INR">INR</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-          </select>
-        </div> */}
+      
       {loading ? (
         <p>Loading products...</p>
       ) : (
@@ -2260,11 +2335,11 @@ useEffect(() => {
     />
             </td>
             
-  <td>
-            <div>
-              <h5>Scrap Calculation</h5>
-              <hr/>
-  
+            <td>
+  <div>
+    <h5>Scrap Calculation</h5>
+    <hr />
+
     <div key={product.id}>
       <h3>{product.name}</h3>
       <p>Process Type: {product.processType || "None"}</p>
@@ -2273,6 +2348,11 @@ useEffect(() => {
         {product.scrapWeightUnit || ""}
       </p>
       <p>Scrap Cost: {product.scrapCost || "Not Calculated"}</p>
+      <p>
+        <strong>
+          Total Scrap Cost: {product.totalScrapCost ? `₹${product.totalScrapCost}` : "Not Calculated"}
+        </strong>
+      </p>
       <select
         onChange={(e) => handleProcessTypeClick(index, e.target.value)}
         value={product.processType || ""}
@@ -2283,9 +2363,8 @@ useEffect(() => {
         <option value="subtractive">Subtractive</option>
       </select>
     </div>
- 
-</div>
- </td>
+  </div>
+</td>
 
 
             <td>
