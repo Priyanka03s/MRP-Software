@@ -74,11 +74,24 @@ const Product = () => {
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [processQuantities, setProcessQuantities] = useState({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+  const [userDetails, setUserDetails] = useState({
+    companyName: '',
+    phoneNumber: '',
+    address: '',
+    gstNo: '',
+    eccNo: '',
+  });
  
   useEffect(() => {
     const fetchData = async () => {
       if (!uid || !projectId) return;
+
+          // Fetch user details
+      const userRef = doc(db, 'Users', uid);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        setUserDetails(userDoc.data());
+      }
   
       const projectRef = doc(db, "Users", uid, "Projects", projectId);
       const projectDoc = await getDoc(projectRef);
@@ -1249,6 +1262,11 @@ doc.autoTable({
       materialName: '',
       invoiceNumber: '',
       materialCost: '',
+      gstNo: userDetails.gstNo, // Use fetched GST No
+      eccNo: userDetails.eccNo, // Use fetched ECC No
+      companyName: userDetails.companyName, // Use fetched company name
+      phoneNumber: userDetails.phoneNumber, // Use fetched phone number
+      address: userDetails.address,
       materialGst: '',
       materialTotalWithGst: '',
       processType: '',
