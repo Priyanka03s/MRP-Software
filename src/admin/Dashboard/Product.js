@@ -2616,89 +2616,92 @@ useEffect(() => {
     )}
 
 {product.processType === 'inhouse' && (
-      <>
-        <h5 className="status-head">In-House Status</h5>
-        <hr className="hr" />
-        <div>
-          <button
-            className="Inhouse-status yellow"
-            style={{ backgroundColor: product.inhouseStatus.processing.color }}
-            onClick={() => handleClick(index, 'processing')}
-          ></button>
-          <span>{product.inhouseStatus.processing.timestamp}</span>
-        </div>
-        <div>
-          <button
-            className="Inhouse-status"
-            style={{ backgroundColor: product.inhouseStatus.completed.color }}
-            onClick={() => handleClick(index, 'completed')}
-          ></button>
-          <span>{product.inhouseStatus.completed.timestamp}</span>
-        </div>
-        <div>
-          <button
-            className="Inhouse-status"
-            style={{ backgroundColor: product.inhouseStatus.notProcessing.color }}
-            onClick={() => handleClick(index, 'notProcessing')}
-          ></button>
-          <span>{product.inhouseStatus.notProcessing.timestamp}</span>
-        </div>
+  <>
+    <h5 className="status-head">In-House Status</h5>
+    <hr className="hr" />
+    <div className="status-container">
+      <div
+        className="status-box"
+        style={{ backgroundColor: product.inhouseStatus.processing.color }}
+        onClick={() => handleClick(index, 'processing')}
+      >
+        <span className="status-text">Process Taken</span>
+        <span className="status-timestamp">{product.inhouseStatus.processing.timestamp}</span>
+      </div>
+      <div
+        className="status-box"
+        style={{ backgroundColor: product.inhouseStatus.completed.color }}
+        onClick={() => handleClick(index, 'completed')}
+      >
+        <span className="status-text">Process Completed</span>
+        <span className="status-timestamp">{product.inhouseStatus.completed.timestamp}</span>
+      </div>
+      <div
+        className="status-box"
+        style={{ backgroundColor: product.inhouseStatus.notProcessing.color }}
+        onClick={() => handleClick(index, 'notProcessing')}
+      >
+        <span className="status-text">Process Not Taken</span>
+        <span className="status-timestamp">{product.inhouseStatus.notProcessing.timestamp}</span>
+      </div>
+    </div>
 
-        <div style={{ marginTop: '10px' }}>
-          <label>Inhouse Completed Quantity:</label>
-          <input
-            type="number"
-            value={product.inhouseCompletedQuantity || ''}
-            onChange={(e) => handleCompletedQuantityChange(index, 'inhouse', e.target.value)}
-          />
-        </div>
+    <div style={{ marginTop: '10px' }}>
+      <label>Inhouse Completed Quantity:</label>
+      <input
+        type="number"
+        value={product.inhouseCompletedQuantity || ''}
+        onChange={(e) => handleCompletedQuantityChange(index, 'inhouse', e.target.value)}
+      />
+    </div>
 
-        <div>
-          <label>Inhouse Balance Quantity:</label>
-          <input type="text" value={product.inhouseBalanceQuantity || ''} readOnly />
-        </div>
+    <div>
+      <label>Inhouse Balance Quantity:</label>
+      <input type="text" value={product.inhouseBalanceQuantity || ''} readOnly />
+    </div>
 
-        <div key={index}>
-        <label>Rejection Quantity:</label>
-        <input
-          type="number"
-          name="rejectionQuantity"
-          value={product.rejectionQuantity || ''}
-          onChange={(e) => handleInputChange(index, e)}
-        /> </div>
+    <div key={index}>
+      <label>Rejection Quantity:</label>
+      <input
+        type="number"
+        name="rejectionQuantity"
+        value={product.rejectionQuantity || ''}
+        onChange={(e) => handleInputChange(index, e)}
+      />
+    </div>
 
-        <div>
-          <label>Reason For Rejection:</label>
-          <input
-            type="text"
-            name="reasonForRejection"
-            value={product.reasonForRejection || ''}
-            onChange={(e) => handleInputChange(index, e)}
-          />
-        </div>
+    <div>
+      <label>Reason For Rejection:</label>
+      <input
+        type="text"
+        name="reasonForRejection"
+        value={product.reasonForRejection || ''}
+        onChange={(e) => handleInputChange(index, e)}
+      />
+    </div>
 
-        <div>
-         
-        <label>Unprocessed Cost:</label>
-        <input
-          type="text"
-          name="unprocessedCost"
-          value={product.unprocessedCost || ''}
-          readOnly
-        />
-        </div>
+    <div>
+      <label>Unprocessed Cost:</label>
+      <input
+        type="text"
+        name="unprocessedCost"
+        value={product.unprocessedCost || ''}
+        readOnly
+      />
+    </div>
 
-        <div>
-  <p><strong>Loss In Process:</strong></p>
-  <input
-    type="text"
-    name="lossInProcess"
-    value={product.lossInProcess || ''}
-    readOnly // Make it read-only since it's auto-calculated
-  />
-</div>
-      </>
-    )}
+    <div>
+      <p><strong>Loss In Process:</strong></p>
+      <input
+        type="text"
+        name="lossInProcess"
+        value={product.lossInProcess || ''}
+        readOnly
+      />
+    </div>
+  </>
+)}
+
 </td>
 
 
