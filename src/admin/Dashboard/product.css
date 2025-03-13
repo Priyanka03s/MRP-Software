@@ -570,6 +570,7 @@ th, td {
   padding: 8px;
   text-align: left;
   border: 1px solid #ddd;
+  color: #000;
 }
 .scroll-container {
   height: 300px;
@@ -586,67 +587,6 @@ th, td {
 
 
 
-.popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000; /* Ensure it's on top of other elements */
-  padding: 20px;
-}
-
-.popup-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.popup-content h3 {
-  margin-bottom: 20px;
-  text-align: center;
-  color: #333;
-}
-
-.popup-content table {
-  width: 100%;
-}
-
-.popup-content table input {
-  width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.popup-content button {
-  margin-top: 15px;
-  padding: 10px;
-  width: 100%;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-align: center;
-}
-
-.popup-content button:hover {
-  background: #0056b3;
-}
-
-.popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999; /* Ensure the overlay is behind the popup but above other content */
-}
 
 
 
@@ -663,22 +603,50 @@ th, td {
 
 /* Dc Bill */
 /* Base Styles */
-.popup-content {
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: calc(100% - 64px); /* Adjust for header height */
+/* General Popup Overlay Styling */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Popup Content Card Styling */
+.popup-card {
+  background: #ffffff;
+  width: 70%;
+  max-height: 80%;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  animation: slideIn 0.3s ease-in-out;
+}
+
+/* Popup Header Styling */
+.popup-header {
   padding: 16px;
+  background: #0a0909;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.popup-title {
-  text-align: center;
-  margin-top: 20px
-}
 
-.dc-bill-btn {
-  margin-left: 50px;
-}
 
+/* Table Styling */
 .popup-table {
   width: 100%;
   border-collapse: collapse;
@@ -688,59 +656,115 @@ th, td {
 .popup-table td {
   border: 1px solid #ddd;
   padding: 8px;
-  text-align: left;
+  text-align: center;
+  color: #000;
 }
 
 .popup-table th {
-  background: #0a0909;
-  color: white;
+  background: #333333;
+  color: #110f0f;
+}
+
+.popup-table tr:nth-child(even) {
+  background: #f2f2f2;
 }
 
 .popup-table tr:hover {
   background: #f9f9f9;
 }
 
-/* Reduced column width for specific fields */
-.popup-table .narrow-column {
-  width: 120px; /* Adjust width as needed */
+/* Button Styling */
+.btn-view-bills {
+  
+  color: #e7d9d9;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
 }
 
-.popup-card {
-  background: white;
-  width: 70%;
-  max-height: 70%;
-  border-radius: 16px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+.btn-view-bills:hover {
+  background: #0056b3;
 }
 
-.popup-close-btn {
-  margin-left: 800px;
-  margin-top: -80px;
-}
-
-@media (max-width: 1000px) {
-  .popup-card {
-    width: 80%;
-    max-height: 80%;
+/* Animation for Popup */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-@media (max-width: 780px) {
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Popup Width */
+@media (max-width: 1000px) {
   .popup-card {
-    width: 90%;
+    width: 80%;
     max-height: 85%;
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 600px) {
   .popup-card {
     width: 95%;
     max-height: 90%;
   }
+
+  .popup-header {
+    font-size: 1rem;
+  }
 }
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  width: 80%;
+  max-width: 600px;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.close-popup-btn {
+  background: red;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+
 /* Hamburger Icon */
 .hamburger {
   position: fixed;
@@ -824,7 +848,7 @@ th, td {
   width: 250px;
   height: 100vh;
   background: #222;
-  color: white;
+  color: rgb(8, 8, 8);
   display: flex;
   flex-direction: column;
   padding: 20px;
@@ -974,3 +998,75 @@ th, td {
   font-size: 10px;
   color: #0a0a0a;
 }
+/* stock */
+
+.stock-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Dimmed background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-content_s {
+  background-color: #fff;
+  width: 90%;
+  height: 70%;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  padding: 20px;
+}
+
+.table-container {
+  flex-grow: 1;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+
+
+
+
+.popup-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.popup-buttons button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.popup-buttons button:hover {
+  background-color: #0056b3;
+}
+
+.popup-buttons button:last-child {
+  background-color: #dc3545;
+}
+
+.popup-buttons button:last-child:hover {
+  background-color: #b02a37;
+}
+

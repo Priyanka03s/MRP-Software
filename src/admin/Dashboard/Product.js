@@ -6,6 +6,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import './product.css';
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
+import { X } from "lucide-react";
 
 const Indicator = ({ orderDate }) => {
   const calculateIndicatorStyle = () => {
@@ -68,7 +69,6 @@ const Product = () => {
   const [stockData, setStockData] = useState([]); // State for stock data
   const [showStockPage, setShowStockPage] = useState(false); 
   const [outhouseComponents, setOuthouseComponents] = useState([]);
-  const [isViewBillsOpen, setIsViewBillsOpen] = useState(false); // State for popup visibility
   const [faceList, setFaceList] = useState([]);
   const [showFaceList, setShowFaceList] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
@@ -81,39 +81,125 @@ const Product = () => {
     gstNo: '',
     eccNo: '',
   });
- 
+  const [isViewBillsOpendc, setIsViewBillsOpendc] = useState(false);
+  const [isProfitOpen, setIsProfitOpen] = useState(false);
+  const [profitDetails, setProfitDetails] = useState(null);
+
+
+  
   useEffect(() => {
     const fetchData = async () => {
-      if (!uid || !projectId) return;
-
-          // Fetch user details
-      const userRef = doc(db, 'Users', uid);
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
-        setUserDetails(userDoc.data());
+      try {
+        if (!uid || !projectId) return;
+  
+        // Fetch user details
+        const userRef = doc(db, 'Users', uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          setUserDetails(userDoc.data());
+        }
+  
+        const projectRef = doc(db, "Users", uid, "Projects", projectId);
+        const projectDoc = await getDoc(projectRef);
+        const projectNameFromDoc = projectDoc.exists() ? projectDoc.data().name : "No project name available";
+        setProjectName(projectNameFromDoc);
+  
+        const productsRef = collection(db, "Users", uid, "Projects", projectId, "Products");
+        const productsSnapshot = await getDocs(productsRef);
+  
+        const productsList = productsSnapshot.docs.map((doc, index) => ({
+          id: String(index + 1).padStart(3, "0"),
+          ...doc.data(),
+          projectName: projectNameFromDoc,
+        }));
+  
+        // Populate componentNumbers for displaying available components
+        const components = productsList.map((prod) => ({
+          number: prod.componentNumber,
+          name: prod.componentName,
+        }));
+        setComponentNumbers(components);
+  
+        // New component numbers
+        const newUsedComponentNumbers = new Set(productsList.map(product => product.componentNumber));
+        setUsedComponentNumbers(newUsedComponentNumbers);
+        setProducts(productsList);
+  
+      } catch (error) {
+        console.error("Error fetching products:", error);
       }
-  
-      const projectRef = doc(db, "Users", uid, "Projects", projectId);
-      const projectDoc = await getDoc(projectRef);
-      const projectNameFromDoc = projectDoc.exists() ? projectDoc.data().name : "No project name available";
-      setProjectName(projectNameFromDoc);
-  
-      const productsRef = collection(db, "Users", uid, "Projects", projectId, "Products");
-      const productsSnapshot = await getDocs(productsRef);
-  
-      const productsList = productsSnapshot.docs.map((doc, index) => ({
-        id: String(index + 1).padStart(3, "0"),
-        ...doc.data(),
-        projectName: projectNameFromDoc,
-      }));
-  
-      const newUsedComponentNumbers = new Set(productsList.map(product => product.componentNumber));
-      setUsedComponentNumbers(newUsedComponentNumbers);
-      setProducts(productsList);
     };
   
     fetchData();
   }, [uid, projectId]);
+  
+
+
+
+
+
+
+
+
+
+// Profit code
+
+
+
+const toggleProfitSection = () => {
+  setIsProfitOpen((prev) => !prev);
+};
+
+const fetchProfitDetails = async (componentNumber, uid, projectId, productId) => {
+  try {
+    // Check for valid inputs
+    if (!uid || !projectId || !productId || !componentNumber) {
+      console.error("Missing required parameters.");
+      alert("Unable to fetch component details. Missing parameters.");
+      return;
+    }
+
+    // Reference to the product document
+    const productDoc = doc(
+      db,
+      "Users",
+      uid,
+      "Projects",
+      projectId,
+      "Products",
+      productId // Pass productId as an argument
+    );
+
+    // Fetch the document
+    const productSnapshot = await getDoc(productDoc);
+
+    if (productSnapshot.exists()) {
+      const productData = productSnapshot.data();
+
+      // Check if the component exists in the product data
+      if (!productData.components || !productData.components[componentNumber]) {
+        alert("Component details not found in the product data.");
+        return;
+      }
+
+      const componentData = productData.components[componentNumber];
+
+      setProfitDetails({
+        totalScrapCost: componentData.totalScrapCost || 0,
+        materialCostWithGst: componentData.materialCostWithGst || 0,
+        poCost: componentData.purchaseCost || 0,
+      });
+
+      setSelectedComponent(componentNumber);
+    } else {
+      alert("Product details not found.");
+    }
+  } catch (error) {
+    console.error("Error fetching component details:", error);
+    alert("An error occurred while fetching component details.");
+  }
+};
+// ------------------------------------ x ------------------- x -------------------------------- x -----------------------------------------
 
 
 
@@ -129,9 +215,11 @@ const Product = () => {
 
 
 const handleFaceListClick = () => {
-  const componentNumbers = products.map((product) => product.componentNumber);
-  setFaceList(componentNumbers);
-  setShowFaceList(true);
+  if (!showFaceList) {
+    const componentNumbers = products.map((product) => product.componentNumber);
+    setFaceList(componentNumbers);
+  }
+  setShowFaceList(!showFaceList);
 };
 const handleComponentClick = (componentNumber) => {
   const selectedProduct = products.find((product) => product.componentNumber === componentNumber);
@@ -140,7 +228,6 @@ const handleComponentClick = (componentNumber) => {
     const faces = [];
     let remainingQty = purchaseQty - quantityTakenProcess;
 
-    // Generate face details based on the remaining quantity
     for (let i = 1; remainingQty > 0; i++) {
       const faceQty = Math.min(remainingQty, quantityTakenProcess);
       faces.push({ face: `Face ${i}`, quantity: faceQty });
@@ -266,111 +353,108 @@ const handleStock = () => {
     })),
   };
   setStockData(updatedStockData);
-  setShowStockPage(true);
+  setShowStockPage(!showStockPage); // Toggle the stock page
 };
 
-const renderStockPage = () => {
-  const handleSaveStock = async () => {
-    try {
-      for (const product of products) {
-        const { componentNumber, componentName } = product;
+const handleSaveStock = async () => {
+  try {
+    for (const product of products) {
+      const { componentNumber, componentName } = product;
 
-        const productRef = doc(
-          db,
-          "Users",
-          uid,
-          "Projects",
-          projectId,
-          "Products",
-          componentNumber
-        );
+      const productRef = doc(
+        db,
+        "Users",
+        uid,
+        "Projects",
+        projectId,
+        "Products",
+        componentNumber
+      );
 
-        const toolsProcured = stockData.toolsProcured.find(
-          (tool) => tool.componentNumber === componentNumber
-        )?.quantity || 0;
+      const toolsProcured = stockData.toolsProcured.find(
+        (tool) => tool.componentNumber === componentNumber
+      )?.quantity || 0;
 
-        const toolsPurchased = stockData.toolsPurchased.find(
-          (tool) => tool.componentNumber === componentNumber
-        )?.quantity || 0;
+      const toolsPurchased = stockData.toolsPurchased.find(
+        (tool) => tool.componentNumber === componentNumber
+      )?.quantity || 0;
 
-        const toolsNeeded = stockData.toolsNeeded.some(
-          (tool) => tool.componentNumber === componentNumber
-        );
+      const toolsNeeded = stockData.toolsNeeded.some(
+        (tool) => tool.componentNumber === componentNumber
+      );
 
-        const inhouseBalance = await fetchInhouseBalance(componentNumber);
-        const outhouseBalance = await fetchOuthouseBalance(componentNumber);
+      const inhouseBalance = await fetchInhouseBalance(componentNumber);
+      const outhouseBalance = await fetchOuthouseBalance(componentNumber);
 
-        const updatedData = {
-          toolsProcured,
-          toolsPurchased,
-          toolsNeeded,
-          balanceQuantity: {
-            inhouse: inhouseBalance,
-            outhouse: outhouseBalance,
-          },
-        };
+      const updatedData = {
+        toolsProcured,
+        toolsPurchased,
+        toolsNeeded,
+        balanceQuantity: {
+          inhouse: inhouseBalance,
+          outhouse: outhouseBalance,
+        },
+      };
 
-        await setDoc(productRef, updatedData, { merge: true });
-      }
-
-      alert("Stock details saved successfully!");
-    } catch (error) {
-      console.error("Error saving stock details:", error);
-      alert("Error saving stock details.");
+      await setDoc(productRef, updatedData, { merge: true });
     }
-  };
 
-  const fetchInhouseBalance = async (componentNumber) => {
-    const balanceRef = doc(
-      db,
-      "Users",
-      uid,
-      "Projects",
-      projectId,
-      "InhouseBalances",
-      componentNumber
-    );
-    const balanceDoc = await getDoc(balanceRef);
-    return balanceDoc.exists() ? balanceDoc.data().balance : 0;
-  };
+    alert("Stock details saved successfully!");
+  } catch (error) {
+    console.error("Error saving stock details:", error);
+    alert("Error saving stock details.");
+  }
+};
 
-  const fetchOuthouseBalance = async (componentNumber) => {
-    const balanceRef = doc(
-      db,
-      "Users",
-      uid,
-      "Projects",
-      projectId,
-      "OuthouseBalances",
-      componentNumber
-    );
-    const balanceDoc = await getDoc(balanceRef);
-    return balanceDoc.exists() ? balanceDoc.data().balance : 0;
-  };
+const fetchInhouseBalance = async (componentNumber) => {
+  const balanceRef = doc(
+    db,
+    "Users",
+    uid,
+    "Projects",
+    projectId,
+    "InhouseBalances",
+    componentNumber
+  );
+  const balanceDoc = await getDoc(balanceRef);
+  return balanceDoc.exists() ? balanceDoc.data().balance : 0;
+};
 
-  return (
-    <div className="stock-page">
-      <div
-        className="card-container"
-        style={{
-          overflowY: "auto",
-          overflowX: "auto",
-          maxHeight: "400px",
-          maxWidth: "800px",
-          border: "1px solid #ccc",
-          padding: "20px",
-          borderRadius: "10px",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-          backgroundColor: "#fff",
-          margin: "0 auto",
-        }}
-      >
-        <h3 className="text-center text-lg font-semibold mb-4">
-          Stock Details
-        </h3>
-        <table style={{ width: "100%", minWidth: "600px" }}>
+const fetchOuthouseBalance = async (componentNumber) => {
+  const balanceRef = doc(
+    db,
+    "Users",
+    uid,
+    "Projects",
+    projectId,
+    "OuthouseBalances",
+    componentNumber
+  );
+  const balanceDoc = await getDoc(balanceRef);
+  return balanceDoc.exists() ? balanceDoc.data().balance : 0;
+};
+
+const updateStockData = (type, componentNumber, value) => {
+  const updatedStockData = { ...stockData };
+  const itemIndex = updatedStockData[type].findIndex(
+    (item) => item.componentNumber === componentNumber
+  );
+  if (itemIndex !== -1) {
+    updatedStockData[type][itemIndex].quantity = value;
+  } else {
+    updatedStockData[type].push({ componentNumber, quantity: value });
+  }
+  setStockData(updatedStockData);
+};
+
+const renderStockPage = () => (
+  <div className="stock-popup">
+    <div className="popup-content_s">
+      <h3>Stock Details</h3>
+      <div className="table-container">
+        <table>
           <thead>
-            <tr style={{ backgroundColor: "#f5f5f5" }}>
+            <tr>
               <th>Component Number</th>
               <th>Component Name</th>
               <th>Material Name</th>
@@ -392,9 +476,8 @@ const renderStockPage = () => {
                     type="text"
                     value={
                       stockData.toolsProcured.find(
-                        (tool) =>
-                          tool.componentNumber === product.componentNumber
-                      )?.quantity || ''
+                        (tool) => tool.componentNumber === product.componentNumber
+                      )?.quantity || ""
                     }
                     onChange={(e) =>
                       updateStockData(
@@ -410,9 +493,8 @@ const renderStockPage = () => {
                     type="text"
                     value={
                       stockData.toolsPurchased.find(
-                        (tool) =>
-                          tool.componentNumber === product.componentNumber
-                      )?.quantity || ''
+                        (tool) => tool.componentNumber === product.componentNumber
+                      )?.quantity || ""
                     }
                     onChange={(e) =>
                       updateStockData(
@@ -439,118 +521,84 @@ const renderStockPage = () => {
                   />
                 </td>
                 <td>
-                  {stockData.balanceQuantity.find(
-                    (bal) => bal.componentNumber === product.componentNumber
-                  )?.inhouse || 0}
+                  {
+                    stockData.balanceQuantity.find(
+                      (bal) => bal.componentNumber === product.componentNumber
+                    )?.inhouse || 0
+                  }
                 </td>
                 <td>
-                  {stockData.balanceQuantity.find(
-                    (bal) => bal.componentNumber === product.componentNumber
-                  )?.outhouse || 0}
+                  {
+                    stockData.balanceQuantity.find(
+                      (bal) => bal.componentNumber === product.componentNumber
+                    )?.outhouse || 0
+                  }
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button
-          onClick={handleSaveStock}
-          style={{
-            marginTop: "20px",
-            padding: "10px 20px",
-            backgroundColor: "#28a745",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Save Stock
-        </button>
-        <button
-          onClick={() => setShowStockPage(false)}
-          style={{
-            marginTop: "20px",
-            marginLeft: "10px",
-            padding: "10px 20px",
-            backgroundColor: "#007bff",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Back
-        </button>
+      </div>
+      <div className="popup-buttons">
+        <button onClick={handleSaveStock}>Save Stock</button>
+        <button onClick={() => setShowStockPage(false)}>Close</button>
       </div>
     </div>
-  );
-};
-
-const updateStockData = (type, componentNumber, value) => {
-  const updatedStockData = { ...stockData };
-  const itemIndex = updatedStockData[type].findIndex(
-    (item) => item.componentNumber === componentNumber
-  );
-  if (itemIndex !== -1) {
-    updatedStockData[type][itemIndex].quantity = value;
-  } else {
-    updatedStockData[type].push({ componentNumber, quantity: value });
-  }
-  setStockData(updatedStockData);
-};
+  </div>
+);
 
 
 // Dc Bill
 
-const handleViewBills = async () => {
-  setIsViewBillsOpen(true);
+const handleViewBillsdc = async () => {
+  setIsViewBillsOpendc((prevState) => !prevState); // Toggle visibility
 
-  try {
-    const productsRef = collection(
-      db,
-      "Users",
-      uid,
-      "Projects",
-      projectId,
-      "Products"
-    );
-    const q = query(productsRef, where("processType", "==", "outhouse"));
-    const querySnapshot = await getDocs(q);
+  if (!isViewBillsOpendc) {
+    try {
+      const productsRef = collection(
+        db,
+        "Users",
+        uid,
+        "Projects",
+        projectId,
+        "Products"
+      );
+      const q = query(productsRef, where("processType", "==", "outhouse"));
+      const querySnapshot = await getDocs(q);
 
-    const components = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      components.push({
-        componentNumber: data.componentNumber,
-        componentName: data.componentName,
-        materialName: data.materialName,
-        quantityTakenProcess: data.quantityTakenProcess,
-        projectName: data.projectName,
-        customerGST: data.customerGST || "",
-        customerName: data.customerName || "",
-        customerCompanyName: data.customerCompanyName || "",
-        customerCompanyAddress: data.customerCompanyAddress || "",
-        customerEccNo: data.customerEccNo || "",
-        companyName: data.companyName || "",
-        companyAddress: data.companyAddress || "",
-        eccNo: data.eccNo || "",
-        gstNO: data.gstNO || "",
-        phNumber: data.phNumber || "",
-        managerName: data.managerName || "",
+      const components = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        components.push({
+          componentNumber: data.componentNumber,
+          componentName: data.componentName,
+          materialName: data.materialName,
+          quantityTakenProcess: data.quantityTakenProcess,
+          projectName: data.projectName,
+          customerGST: data.customerGST || "",
+          customerName: data.customerName || "",
+          customerCompanyName: data.customerCompanyName || "",
+          customerCompanyAddress: data.customerCompanyAddress || "",
+          customerEccNo: data.customerEccNo || "",
+          companyName: data.companyName || "",
+          companyAddress: data.companyAddress || "",
+          eccNo: data.eccNo || "",
+          gstNO: data.gstNO || "",
+          phNumber: data.phNumber || "",
+          managerName: data.managerName || "",
+        });
       });
-    });
 
-    setOuthouseComponents(components);
-  } catch (error) {
-    console.error("Error fetching components:", error);
-    alert("Failed to fetch Out-house components.");
+      setOuthouseComponents(components);
+    } catch (error) {
+      console.error("Error fetching components:", error);
+      alert("Failed to fetch Out-house components.");
+    }
   }
 };
 
-const handleCloseViewBills = () => {
-  setIsViewBillsOpen(false);
-  setOuthouseComponents([]);
-};
+
+
 
 const handlePromptForDC = () => {
   const componentName = prompt("Enter Component Name:");
@@ -696,33 +744,69 @@ doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right")
 
 
   
-  const handlePurchase = () => {
-    setPurchaseData(products);
-    setShowPurchasePage(true);
-  };
-  // const handleDropdowns = (field, index) => {
-  //   const dropdownValues = [
-  //     ...new Set(products.map((product) => product[field])),
-  //   ].filter(Boolean);
-  //   alert(`Select a value for ${field}: ${dropdownValues.join(", ")}`);
-  // };
+const handlePurchase = () => {
+  setPurchaseData(products);
+  setShowPurchasePage(true);
+};
 
-
-  
-  const renderPurchasePage = () => {
-    return (
-      <div className="purchase-page">
+const renderPurchasePage = () => {
+  return (
+    <div
+      className="popup-container"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        className="purchase-page"
+        style={{
+          backgroundColor: "#fff",
+          padding: "20px",
+          borderRadius: "10px",
+          width: "90%",
+          height: "90%",
+          overflow: "auto",
+          boxShadow: "0 0 15px rgba(0, 0, 0, 0.3)",
+          position: "relative",
+        }}
+      >
+        <button
+          onClick={() => setShowPurchasePage(false)}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            backgroundColor: "red",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            padding: "5px 10px",
+            cursor: "pointer",
+          }}
+        >
+          Close
+        </button>
         <h3>Purchase Order</h3>
         <div
           style={{
-            height: "300px",
+            height: "70%",
             width: "100%",
             overflowY: "auto",
             border: "1px solid #ccc",
             padding: "10px",
+            marginBottom: "20px",
           }}
         >
-          <table>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th>Component Details</th>
@@ -730,7 +814,6 @@ doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right")
                 <th>Material Name</th>
                 <th>Office Details</th>
                 <th>Customer Details</th>
-                
                 <th>Invoice Number</th>
               </tr>
             </thead>
@@ -738,13 +821,13 @@ doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right")
               {purchaseData?.map((product, index) => (
                 <tr key={index}>
                   <td>
-                    <label>Component Number :</label>
+                    <label>Component Number:</label>
                     <input
                       type="text"
                       value={product.componentNumber || ""}
                       readOnly
                     />
-                    <label>Component Name :</label>
+                    <label>Component Name:</label>
                     <input
                       type="text"
                       value={product.componentName || ""}
@@ -766,39 +849,54 @@ doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right")
                     />
                   </td>
                   <td>
-                  <strong>GST No:</strong> {product.gstNo || "Not Available"}<br/>
-                  <strong>Ecc No:</strong> {product.eecNo || "Not Available"}<br/>
-                  <strong>Company Name:</strong>  {product.companyName || "Not Available"}<br/>
-                  <strong>Company Address:</strong>  {product.companyAddress || "Not Available"}<br/>
-                  <strong>Ph No :</strong> {product.phNumber || "Not Available"}<br/>
-
-
+                    <strong>GST No:</strong> {product.gstNo || "Not Available"}
+                    <br />
+                    <strong>Ecc No:</strong> {product.eecNo || "Not Available"}
+                    <br />
+                    <strong>Company Name:</strong>{" "}
+                    {product.companyName || "Not Available"}
+                    <br />
+                    <strong>Company Address:</strong>{" "}
+                    {product.companyAddress || "Not Available"}
+                    <br />
+                    <strong>Ph No:</strong>{" "}
+                    {product.phNumber || "Not Available"}
+                    <br />
                   </td>
 
                   <td>
-  <strong>GST No:</strong> {product.customerGST || "Not Available"}<br/>
-  <strong>Name:</strong> {product.customerName || "Not Available"}<br/>
-  <strong>Company Name:</strong> {product.customerCompanyName || "Not Available"}<br/>
-  <strong>Company Address:</strong> {product.customerCompanyAddress || "Not Available"}<br/>
-  <strong>ECC No:</strong> {product.customerEccNo || "Not Available"}<br/>
+                    <strong>GST No:</strong>{" "}
+                    {product.customerGST || "Not Available"}
+                    <br />
+                    <strong>Name:</strong>{" "}
+                    {product.customerName || "Not Available"}
+                    <br />
+                    <strong>Company Name:</strong>{" "}
+                    {product.customerCompanyName || "Not Available"}
+                    <br />
+                    <strong>Company Address:</strong>{" "}
+                    {product.customerCompanyAddress || "Not Available"}
+                    <br />
+                    <strong>ECC No:</strong>{" "}
+                    {product.customerEccNo || "Not Available"}
+                    <br />
                   </td>
 
-                 
                   <td>{product.invoiceNumber || "Not Available"}</td>
                 </tr>
               ))}
             </tbody>
-          
           </table>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-        <button onClick={handleGenerateBillPO}>Generate Bill</button>
-        <button onClick={handleSaveProduct}>Save</button>
-        <button onClick={() => setShowPurchasePage(false)}>Back</button></div>
+        <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+          <button onClick={handleGenerateBillPO}>Generate Bill</button>
+          <button onClick={handleSaveProduct}>Save</button>
+          <button onClick={() => setShowPurchasePage(false)}>Back</button>
         </div>
-    );
-  };
-  
+      </div>
+    </div>
+  );
+};
 
  
   //bill
@@ -1894,136 +1992,265 @@ useEffect(() => {
         <div className='sidebar'>
           
           <div>
-            <button>
-              Profit Details
-            </button>
-          </div>
-          <div>
-            <button onClick={handleFaceListClick}>Face List</button>
-          
+      {/* Profit Button */}
+      <button
+        onClick={toggleProfitSection}
+        style={{
+          padding: "10px 20px",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        {isProfitOpen ? "Close Profit Section" : "Show Profit Section"}
+      </button>
 
-          {showFaceList && (
-            <div className="componentList">
-              <h3>Component Numbers</h3>
-              {faceList.map((componentNumber) => (
-                <div key={componentNumber}>
-                  <button onClick={() => handleComponentClick(componentNumber)}>
-                    {componentNumber}
-                  </button>
-                </div>
+      {/* Profit Section */}
+      {isProfitOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            color: "white",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <h2>Available Components</h2>
+          {Array.isArray(componentNumbers) && componentNumbers.length > 0 ? (
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                maxHeight: "200px",
+                overflowY: "scroll",
+                width: "80%",
+              }}
+            >
+              {componentNumbers.map((component) => (
+                <li
+                  key={component.number}
+                  onClick={() => fetchProfitDetails(component.number)}
+                  style={{
+                    cursor: "pointer",
+                    padding: "10px",
+                    backgroundColor:
+                      selectedComponent === component.number ? "#28a745" : "#343a40",
+                    margin: "5px 0",
+                    borderRadius: "5px",
+                    textAlign: "center",
+                  }}
+                >
+                  {component.number} - {component.name}
+                </li>
               ))}
+            </ul>
+          ) : (
+            <p>No components available.</p>
+          )}
+
+          {/* Profit Table */}
+          {profitDetails && (
+            <div
+              style={{
+                marginTop: "20px",
+                width: "80%",
+                backgroundColor: "#212529",
+                padding: "20px",
+                borderRadius: "10px",
+                textAlign: "center",
+              }}
+            >
+              <h3>Profit Details for Component {selectedComponent}</h3>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  marginTop: "10px",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>Scrap Total Cost</th>
+                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>Raw Material Cost</th>
+                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>PO Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ border: "1px solid #dee2e6", padding: "10px" }}>
+                      {profitDetails.totalScrapCost}
+                    </td>
+                    <td style={{ border: "1px solid #dee2e6", padding: "10px" }}>
+                      {profitDetails.materialCostWithGst}
+                    </td>
+                    <td style={{ border: "1px solid #dee2e6", padding: "10px" }}>
+                      {profitDetails.poCost}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
 
-          {selectedComponent && (
-            <div className="faceDetails">
-              <h3>Face Details for Component {selectedComponent.componentNumber}</h3>
-              <ul>
-                {selectedComponent.faces.map((face) => (
-                  <li key={face.face}>
-                    {face.face}: {face.quantity}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* Close Button */}
+          <button
+            onClick={toggleProfitSection}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#dc3545",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+        </div>
+      )}
+    </div>
+    <div className="product-container">
+  <button className="face-list-btn" onClick={handleFaceListClick}>
+    {showFaceList ? 'Close Face List' : 'Open Face List'}
+  </button>
+
+  {showFaceList && (
+    <div className="popup-overlay">
+      <div className="popup-content">
+        <button className="close-popup-btn" onClick={handleFaceListClick}>
+          Close
+        </button>
+        <h3>Component Numbers</h3>
+        <table className="component-table">
+          <thead>
+            <tr>
+              <th>Component Number</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {faceList.map((componentNumber) => (
+              <tr key={componentNumber}>
+                <td>{componentNumber}</td>
+                <td>
+                  <button
+                    className="component-btn"
+                    onClick={() => handleComponentClick(componentNumber)}
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+
+  {selectedComponent && (
+    <div className="popup-overlay">
+      <div className="popup-content">
+        <button className="close-popup-btn" onClick={() => setSelectedComponent(null)}>
+          Close
+        </button>
+        <h3>Face Details for Component {selectedComponent.componentNumber}</h3>
+        <table className="details-table">
+          <thead>
+            <tr>
+              <th>Face</th>
+              <th>Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {selectedComponent.faces.map((face) => (
+              <tr key={face.face}>
+                <td>{face.face}</td>
+                <td>{face.quantity}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
 </div>
-          <div className="Amount popup-container">
-            <button onClick={handlePurchase}>Purchase</button>
-          </div>
+
+
+<div className="Amount">
+  <button onClick={handlePurchase}>Purchase</button>
+  {showPurchasePage ? renderPurchasePage() : null}
+</div>
 
           <div className="popup-container">
-            <button onClick={handleStock}>View Stock</button>
+          <button onClick={handleStock}>View Stock</button>
+          {showStockPage && renderStockPage()}
           </div>
+          <div className="popup-content">
+    <button onClick={handleViewBillsdc} className="btn-view-bills">
+      {isViewBillsOpendc ? "Close DC Bills" : "View DC Bills"}
+    </button>
 
-          <div className="popup-container">
-            <button onClick={handleViewBills} className="btn-view-bills">
-              View DCC Bills
+    {isViewBillsOpendc && (
+      <div className="popup-overlay">
+        <div className="popup-card">
+          <div className="popup-header">
+            <h4>DC Out-source Components</h4>
+            <button className="dc-bill-btn" onClick={handlePromptForDC}>
+              Generate DC
             </button>
-
-            {isViewBillsOpen && (
-              <div className="popup-overlay">
-                <div className="popup-card">
-                  <div className="popup-header">
-                    <h2 className="popup-title">Out-house Components</h2>
-                    <button onClick={handleCloseViewBills} className="popup-close-btn">
-                      Close
-                    </button>
-                  </div>
-
-                  <div className="popup-content">
-                    <button onClick={handleViewBills} className="btn-view-bills">
-                      View DC Bills
-                    </button>
-
-                    {isViewBillsOpen && (
-                      <div className="popup-overlay">
-                        <div className="popup-card">
-                          <div className="popup-header">
-                            <h4 className="popup-title">DC Out-source Components</h4>
-                            <button className="dc-bill-btn" onClick={handlePromptForDC}>
-                              Generate DC
-                            </button>
-                            <button onClick={handleCloseViewBills} className="popup-close-btn">
-                              Close
-                            </button>
-                          </div>
-                          <div className="popup-content">
-                            {outhouseComponents.length > 0 ? (
-                              <table className="popup-table">
-                                <thead>
-                                  <tr>
-                                    <th style={{ width: "50px", textAlign: "center" }}>Project Name</th>
-                                    <th style={{ width: "50px", textAlign: "center" }}>Component Number</th>
-                                    <th style={{ width: "50px", textAlign: "center" }}>Component Name</th>
-                                    <th style={{ width: "70px", textAlign: "center" }}>Material Name</th>
-                                    <th style={{ width: "50px", textAlign: "center" }}>Quantity</th>
-                                    <th>Customer Details</th>
-                                    <th>Company details</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {outhouseComponents.map((component, index) => (
-                                    <tr key={index}>
-                                      <td>{component.projectName}</td>
-                                      <td>{component.componentNumber}</td>
-                                      <td>{component.componentName}</td>
-                                      <td>{component.materialName}</td>
-                                      <td>{component.quantityTakenProcess}</td>
-                                      <td>
-                                        <strong>Gst No :</strong> {component.customerGST} <br />
-                                        <strong>Name :</strong> {component.customerName} <br />
-                                        <strong>Company Name :</strong> {component.customerCompanyName} <br />
-                                        <strong>Address :</strong> {component.customerCompanyAddress} <br />
-                                        <strong>Ecc No :</strong> {component.customerEccNo}
-                                      </td>
-                                      <td>
-                                        <strong>Company Name :</strong> {component.companyName} <br />
-                                        <strong>Address :</strong> {component.companyAddress} <br />
-                                        <strong>Ecc No :</strong> {component.eccNO} <br />
-                                        <strong>Gst No :</strong> {component.gstNO} <br />
-                                        <strong>Ph No :</strong> {component.phNumber} <br />
-                                        <strong>Manager Name :</strong> {component.managerName} <br />
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            ) : (
-                              <p>No Out-house components found.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <button
+              className="close-popup-btn"
+              onClick={() => setIsViewBillsOpendc(false)} // Close the popup
+            >
+              Close
+            </button>
+          </div>
+          <div className="popup-content">
+            {outhouseComponents.length > 0 ? (
+              <table className="popup-table">
+                <thead>
+                  <tr>
+                    <th>Project Name</th>
+                    <th>Component Number</th>
+                    <th>Component Name</th>
+                    <th>Material Name</th>
+                    <th>Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outhouseComponents.map((component, index) => (
+                    <tr key={index}>
+                      <td>{component.projectName}</td>
+                      <td>{component.componentNumber}</td>
+                      <td>{component.componentName}</td>
+                      <td>{component.materialName}</td>
+                      <td>{component.quantityTakenProcess}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No components available.</p>
             )}
           </div>
+        </div>
+      </div>
+    )}
+  </div>
 
-          {showStockPage && renderStockPage()}
-          {showPurchasePage ? renderPurchasePage() : <div></div>}
+         
+         
         </div>
       )}
     </div>
@@ -2042,7 +2269,22 @@ useEffect(() => {
         >
           <button onClick={() => setFilterType("Inhouse")}>Inhouse</button>
           <button onClick={() => setFilterType("Outhouse")}>Outhouse</button>
-          <button onClick={() => setFilterType("")}>Clear</button>
+          <button
+      onClick={() => setFilterType("")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "5px",
+        border: "1px solid #ccc",
+        borderRadius: "5px",
+        padding: "5px 10px",
+        cursor: "pointer",
+        fontSize: "14px",
+      }}
+    >
+      <X size={16} /> {/* The clear icon */}
+      
+    </button>
         </div>
      
 
