@@ -135,6 +135,8 @@ const Product = () => {
   
 
 
+// selected component number 
+
 
 
 
@@ -240,99 +242,7 @@ const handleComponentClick = (componentNumber) => {
 };
 // ---------------x---------------x---------------x--------------------x---------------------------x------------------------x-------
 
-// Bill for PO
 
-const handleGenerateBillPO = () => {
-  // Prompt for Component Number and Name
-  const componentNumber = prompt("Enter the Component Number:");
-  if (!componentNumber) {
-    alert("Component Number is required to generate the bill.");
-    return;
-  }
-
-  const componentName = prompt("Enter the Component Name:");
-  if (!componentName) {
-    alert("Component Name is required to generate the bill.");
-    return;
-  }
-
-  // Replace these with actual values
-  const companyAddress = companyAddress;
-  const phNumber = phNumber;
-  const gstNO = gstNO;
-  const eccNO =eccNO;
-
-  // Example data for demonstration purposes
-  const purchaseData = [
-    {
-      componentNumber: componentNumber,
-      componentName: componentName,
-      hsnCode: "1234",
-      materialName: "Polymer",
-      customerName: "John Doe",
-      gstNo: "GST123456",
-      invoiceNumber: "INV98765",
-      
-    },
-  ];
-
-  const doc = new jsPDF();
-
-  // Heading
-  doc.setFontSize(16);
-  doc.text("Purchase Order", 105, 15, null, null, "center");
-
-  // From Address
-  doc.setFontSize(12);
-  doc.text("From Address:", 15, 25);
-  doc.text(`${companyAddress}`, 15, 30);
-  doc.text(`OFFICE: ${companyAddress}`, 15, 35);
-  doc.text(`PH: ${phNumber}`, 15, 40);
-  doc.text(`GSTIN #: ${gstNO}`, 15, 45);
-  doc.text(`Ecc no: ${eccNO}`, 15, 50);
-
-  // Table Layout
-  const tableColumn = ["To Address", "Range", "Division", "II E", "PO No.", "Date"];
-  const tableRows = [["Ms. Jeevanathan Polymer UNIT II", "II E", "CBE-II", "", "397", "19.02.25"]];
-
-  doc.autoTable({
-    startY: 60,
-    head: [tableColumn],
-    body: tableRows,
-    theme: "grid",
-    styles: { fontSize: 10 },
-  });
-
-  // Component Details Table
-  const productTableColumns = [
-    "Component Details",
-    "HSN Code",
-    "Material Name",
-    "Customer Name",
-    "GST No",
-    "Invoice Number",
-  ];
-
-  const productTableRows = purchaseData.map((product) => [
-    `Component No: ${product.componentNumber}\nComponent Name: ${product.componentName}`,
-    product.hsnCode || "N/A",
-    product.materialName || "N/A",
-    product.customerName || "Not Available",
-    product.gstNo || "Not Available",
-    product.invoiceNumber || "Not Available",
-  ]);
-
-  doc.autoTable({
-    startY: doc.autoTable.previous.finalY + 10,
-    head: [productTableColumns],
-    body: productTableRows,
-    theme: "striped",
-    styles: { fontSize: 10 },
-  });
-
-  // Save the generated PDF
-  doc.save(`${componentNumber}_${componentName}_Purchase_Order.pdf`);
-};
 
 // stock
 
@@ -368,7 +278,7 @@ const handleSaveStock = async () => {
         "Projects",
         projectId,
         "Products",
-        componentNumber
+        product.id,
       );
 
       const toolsProcured = stockData.toolsProcured.find(
@@ -742,8 +652,86 @@ doc.text(`For ${companyName}`, 200 - 10, footerStartY + 40, null, null, "right")
 
 
 
+// Bill for PO
+const handleGenerateBillPO = () => {
+  // Prompt for Component Number and Name
+  const componentNumber = prompt("Enter the Component Number:");
+  if (!componentNumber) {
+    alert("Component Number is required to generate the bill.");
+    return;
+  }
 
-  
+  const componentName = prompt("Enter the Component Name:");
+  if (!componentName) {
+    alert("Component Name is required to generate the bill.");
+    return;
+  }
+
+  // Find matching purchase data
+  const matchingData = purchaseData.find(
+    (product) =>
+      product.componentNumber === componentNumber &&
+      product.componentName === componentName
+  );
+
+  if (!matchingData) {
+    alert("No matching data found for the provided Component Number and Name.");
+    return;
+  }
+
+  // Initialize jsPDF
+  const doc = new jsPDF();
+
+  // Add Heading
+  doc.setFontSize(16);
+  doc.text("Purchase Order", 105, 15, null, null, "center");
+
+  // Add "From Address" with improved formatting
+  doc.setFontSize(12);
+  doc.text("From Address:", 14, 30);
+  doc.setFontSize(10);
+  doc.text(`GST No: ${matchingData.gstNo || "N/A"}`, 14, 38);
+  doc.text(`ECC No: ${matchingData.eccNo || "N/A"}`, 14, 44);
+  doc.text(`Company Name: ${matchingData.companyName || "Not Available"}`, 14, 50);
+  doc.text(`Address: ${matchingData.address || "Not Available"}`, 14, 56);
+  doc.text(`Phone: ${matchingData.phoneNumber || "Not Available"}`, 14, 62);
+
+  // Define Columns and Rows for the Component Details Table
+  const tableColumns = [
+    "Component Details",
+    "HSN Code",
+    "Material Name",
+    "Customer Name",
+    "GST No",
+    "Invoice Number",
+  ];
+
+  const tableRows = [
+    [
+      `Component No: ${matchingData.componentNumber}\nComponent Name: ${matchingData.componentName}`,
+      matchingData.hsnCode || "N/A",
+      matchingData.materialName || "N/A",
+      matchingData.customerName || "Not Available",
+      matchingData.gstNo || "Not Available",
+      matchingData.invoiceNumber || "Not Available",
+    ],
+  ];
+
+  // Generate the Component Details Table
+  doc.autoTable({
+    startY: 70,
+    head: [tableColumns],
+    body: tableRows,
+    theme: "striped",
+    styles: { fontSize: 10 },
+  });
+
+  // Save the PDF with a meaningful filename
+  doc.save(`${componentNumber}_${componentName}_Purchase_Order.pdf`);
+};
+
+
+
 const handlePurchase = () => {
   setPurchaseData(products);
   setShowPurchasePage(true);
@@ -851,19 +839,18 @@ const renderPurchasePage = () => {
                   <td>
                     <strong>GST No:</strong> {product.gstNo || "Not Available"}
                     <br />
-                    <strong>Ecc No:</strong> {product.eecNo || "Not Available"}
+                    <strong>Ecc No:</strong> {product.eccNo || "Not Available"}
                     <br />
                     <strong>Company Name:</strong>{" "}
                     {product.companyName || "Not Available"}
                     <br />
                     <strong>Company Address:</strong>{" "}
-                    {product.companyAddress || "Not Available"}
+                    {product.address || "Not Available"}
                     <br />
                     <strong>Ph No:</strong>{" "}
-                    {product.phNumber || "Not Available"}
+                    {product.phoneNumber || "Not Available"}
                     <br />
                   </td>
-
                   <td>
                     <strong>GST No:</strong>{" "}
                     {product.customerGST || "Not Available"}
@@ -881,7 +868,6 @@ const renderPurchasePage = () => {
                     {product.customerEccNo || "Not Available"}
                     <br />
                   </td>
-
                   <td>{product.invoiceNumber || "Not Available"}</td>
                 </tr>
               ))}
@@ -897,6 +883,7 @@ const renderPurchasePage = () => {
     </div>
   );
 };
+
 
  
   //bill
@@ -2715,7 +2702,7 @@ useEffect(() => {
 
 {product.processType === "outhouse" && (
   <div>
-    <p>Out-House Details</p>
+    <p className="status-head" >Out-House Details</p>
 
     <label>Vendor Cost: </label>
     <input
@@ -3018,7 +3005,7 @@ useEffect(() => {
         </section>
       
       )}
-      <button className='AddProduct' onClick={handleAddProduct}>Add Product</button>
+      {/* <button className='AddProduct' onClick={handleAddProduct}>Add Product</button> */}
     </main>
   );
 };

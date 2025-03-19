@@ -12,11 +12,11 @@ const ProjectDetails = ({ uid }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [components, setComponents] = useState({});
-  const [isAddingComponent, setIsAddingComponent] = useState(false); // To prevent duplicate submissions
+  const [isAddingComponent, setIsAddingComponent] = useState(false);
 
   const navigate = useNavigate();
 
- useEffect(() => {
+  useEffect(() => {
     if (!uid) {
       console.error('User ID is missing. Unable to fetch projects.');
       return;
@@ -36,8 +36,6 @@ const ProjectDetails = ({ uid }) => {
     return () => unsubscribe();
   }, [uid]);
 
-
-  
   const handleCreateProject = async () => {
     if (projectName.trim() === '' || !uid) {
       alert('Please enter a valid project name.');
@@ -55,7 +53,7 @@ const ProjectDetails = ({ uid }) => {
   };
 
   const handleAddComponent = async (projectId) => {
-    if (isAddingComponent) return; // Prevent multiple clicks
+    if (isAddingComponent) return;
     setIsAddingComponent(true);
 
     if (!uid) {
@@ -143,6 +141,16 @@ const ProjectDetails = ({ uid }) => {
     navigate('/product', { state: { uid, projectId } });
   };
 
+  const handleComponentClick = (projectId, componentId) => {
+    const selectedComponent = components[projectId]?.find((component) => component.id === componentId);
+    if (!selectedComponent) {
+      alert('Component not found.');
+      return;
+    }
+
+    navigate('/product', { state: { uid, projectId, component: selectedComponent } });
+  };
+
   const handleInputChange = (e) => {
     const value = e.target.value;
     setProjectName(value);
@@ -213,7 +221,12 @@ const ProjectDetails = ({ uid }) => {
                     <ul>
                       {components[project.id]?.map((component) => (
                         <li key={component.id} className="component-item">
-                          <span>{component.componentNumber || 'Unnamed Component'} </span>
+                          <span
+                            className="component-link"
+                            onClick={() => handleComponentClick(project.id, component.id)}
+                          >
+                            {component.componentNumber || 'Unnamed Component'}
+                          </span>
                           <span
                             style={{
                               backgroundColor: component.inhouseStatus.processing.color,
