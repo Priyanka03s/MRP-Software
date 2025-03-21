@@ -3,6 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../../firebaseCofig';
 import { collection, addDoc, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import './Project.css';
+import { FiChevronRight, FiUser } from 'react-icons/fi';// Icon for options menu
+
+const Modal = ({ isOpen, onClose, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <button className="close-button" onClick={onClose}>
+          &times;
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+};
+
 
 const ProjectDetails = ({ uid }) => {
   const [projectName, setProjectName] = useState('');
@@ -13,7 +29,11 @@ const ProjectDetails = ({ uid }) => {
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [components, setComponents] = useState({});
   const [isAddingComponent, setIsAddingComponent] = useState(false);
-
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showOptions, setShowOptions] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredComponents, setFilteredComponents] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,15 +161,8 @@ const ProjectDetails = ({ uid }) => {
     navigate('/product', { state: { uid, projectId } });
   };
 
-  const handleComponentClick = (projectId, componentId) => {
-    const selectedComponent = components[projectId]?.find((component) => component.id === componentId);
-    if (!selectedComponent) {
-      alert('Component not found.');
-      return;
-    }
 
-    navigate('/product', { state: { uid, projectId, component: selectedComponent } });
-  };
+
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -161,10 +174,37 @@ const ProjectDetails = ({ uid }) => {
     );
     setShowDropdown(true);
   };
-
+  const handleComponentMenuClick = (projectId, componentId, action) => {
+    if (action === 'view') {
+      const selected = components[projectId]?.find((component) => component.id === componentId);
+      setSelectedComponent(selected);
+      setIsModalOpen(true);
+    }
+  };
   const handleDropdownBlur = () => {
     setTimeout(() => setShowDropdown(false), 200);
   };
+  const toggleOptions = (componentId) => {
+    setShowOptions((prev) => (prev === componentId ? null : componentId));
+  };
+
+  // search component 
+
+  const handleSearch = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+  
+    if (query === '') {
+      setFilteredComponents([]);
+    } else {
+      const filtered = (components[activeProjectId] || []).filter((component) =>
+        component.componentNumber?.toLowerCase().includes(query) ||
+        component.componentName?.toLowerCase().includes(query)
+      );
+      setFilteredComponents(filtered);
+    }
+  };
+  
 
   return (
     <div>
@@ -206,7 +246,7 @@ const ProjectDetails = ({ uid }) => {
           <ol>
             {projects.map((project) => (
               <li key={project.id} className="project-item">
-                <div className="project-name" onClick={() => handleProjectClick(project.id)}>
+                <div className="project-name"    onMouseDown={() => handleProjectClick(project.id)} >
                   {project.name}
                 </div>
                 <button
@@ -217,34 +257,73 @@ const ProjectDetails = ({ uid }) => {
                 </button>
                 {activeProjectId === project.id && (
                   <div className="sidebar">
-                    <h4>Components & Products</h4>
-                    <ul>
-                      {components[project.id]?.map((component) => (
-                        <li key={component.id} className="component-item">
-                          <span
-                            className="component-link"
-                            onClick={() => handleComponentClick(project.id, component.id)}
-                          >
-                            {component.componentNumber || 'Unnamed Component'}
-                          </span>
-                          <span
-                            style={{
-                              backgroundColor: component.inhouseStatus.processing.color,
-                              borderRadius: '50%',
-                              display: 'inline-block',
-                              width: '12px',
-                              height: '12px',
-                              marginLeft: '8px',
-                            }}
-                          ></span>
-                          <span style={{ marginLeft: '10px' }}>
-                            {component.processType === 'In-house'
-                              ? `Balance: ${component.inhouseDetails.inhouseBalanceQuantity || 0}`
-                              : `Balance: ${component.outhouseDetails.outhouseBalanceQuantity || 0}`}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h4>Components & Products Masters</h4>
+                    <input
+                     type="text"
+                     placeholder="Search components..."
+                     value={searchQuery}
+                     onChange={handleSearch}
+                     className="mb-4 p-2 border border-gray-300 rounded w-full"
+                    />
+                    {searchQuery && (
+    <ul>
+      {filteredComponents.map((component) => (
+        <li key={component.id} className="mb-2">
+          <div className="flex justify-between items-center p-2 bg-white rounded shadow">
+            <span>{component.componentName} ({component.componentNumber})</span>
+            <div>
+              <button
+                className="mr-2 p-1 text-blue-600"
+                onClick={() =>
+                  handleComponentMenuClick(project.id, component.id, 'view')
+                }
+              >
+                View
+              </button>
+              <button
+                className="p-1 text-green-600"
+                onMouseDown={() => handleProjectClick(project.id)}
+              >
+                Master
+              </button>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+                    <ol>
+                    {components[project.id]?.map((component, index) => (
+                      <div className='single' key={component.id}>
+                       <span style={{color:'#fff', marginLeft:'10px'}}>{index + 1}. {component.componentNumber}</span> 
+                       <button
+                          className="icon-button"
+                          onClick={() => toggleOptions(component.id)}
+                        >
+                      <FiChevronRight/>
+
+                        </button>
+                       {showOptions === component.id && (
+                          <div className="options-menu">
+                            <button
+                              className="options-button"
+                              onClick={() =>
+                                handleComponentMenuClick(project.id, component.id, 'view')
+                              }
+                            >
+                              View
+                            </button>
+                            <button
+                              className="options-button"
+                              onMouseDown={() => handleProjectClick(project.id)}
+                            >
+                              Master
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    </ol>
                     <button
                       className="add-component"
                       onClick={() => handleAddComponent(project.id)}
@@ -257,8 +336,71 @@ const ProjectDetails = ({ uid }) => {
             ))}
           </ol>
         )}
+        
+      </div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+  {selectedComponent ? (
+    <div className="modal-content">
+      <h3 className="modal-header">{selectedComponent.componentNumber} Details</h3>
+      <table className="modal-table">
+        <thead>
+          <tr>
+            <th>Component Number</th>
+            <th>Component Name</th>
+            <th>Material Name</th>
+            <th>Purchase Number</th>
+            <th>Purchase Quantity</th>
+            <th>Order Date</th>
+            <th>Hsn Code</th>
+            <th>Outhouse Balance Quantity</th>
+            <th>Inhouse Balance Quantity</th>
+            <th>Invoice NO</th>
+            <th>Matirial Cost</th>
+            <th>Material Total With Gst</th>
+            <th>Rejection Quantity</th>
+            <th>Reason For Rejection</th>
+            <th>Unprocessed Cost</th>
+            <th>Loss In Process</th>
+          
+           
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{selectedComponent.componentNumber}</td>
+            <td>{selectedComponent.componentName}</td>
+            <td>{selectedComponent.materialName}</td>
+            <td>{selectedComponent.purchaseNumber}</td>
+            <td>{selectedComponent.purchaseQty}</td>
+            <td>{selectedComponent.orderDate}</td>
+            <td>{selectedComponent.hsnCode}</td>
+            <td>{selectedComponent.outhouseBalanceQuantity}</td>
+            <td>{selectedComponent.inhouseBalanceQuantity}</td>
+            <td>{selectedComponent.invoiceNumber}</td>
+            <td>{selectedComponent.materialCost}</td>
+            <td>{selectedComponent.materialCostWithGst}</td>
+            <td>{selectedComponent.rejectionQuantity}</td>
+            <td>{selectedComponent.reasonForRejection}</td>
+            <td>{selectedComponent.unprocessedCost}</td>
+            <td>{selectedComponent.lossInProcess}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="modal-buttons">
+        
+        <button className="close-button" onClick={() => setIsModalOpen(false)}>
+          Close
+        </button>
       </div>
     </div>
+  ) : (
+    <p>No details available.</p>
+  )}
+</Modal>
+
+
+    </div>
+    
   );
 };
 
