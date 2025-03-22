@@ -147,16 +147,14 @@ const Product = () => {
 // Profit code
 
 
-
 const toggleProfitSection = () => {
   setIsProfitOpen((prev) => !prev);
 };
 
-const fetchProfitDetails = async (componentNumber, uid, projectId, productId) => {
+// Fetch Profit Details
+const fetchProfitDetails = async (componentNumber) => {
   try {
-    // Check for valid inputs
-    if (!uid || !projectId || !productId || !componentNumber) {
-      console.error("Missing required parameters.");
+    if (!uid || !projectId || !componentNumber) {
       alert("Unable to fetch component details. Missing parameters.");
       return;
     }
@@ -169,7 +167,7 @@ const fetchProfitDetails = async (componentNumber, uid, projectId, productId) =>
       "Projects",
       projectId,
       "Products",
-      productId // Pass productId as an argument
+      componentNumber
     );
 
     // Fetch the document
@@ -177,24 +175,15 @@ const fetchProfitDetails = async (componentNumber, uid, projectId, productId) =>
 
     if (productSnapshot.exists()) {
       const productData = productSnapshot.data();
-
-      // Check if the component exists in the product data
-      if (!productData.components || !productData.components[componentNumber]) {
-        alert("Component details not found in the product data.");
-        return;
-      }
-
-      const componentData = productData.components[componentNumber];
-
       setProfitDetails({
-        totalScrapCost: componentData.totalScrapCost || 0,
-        materialCostWithGst: componentData.materialCostWithGst || 0,
-        poCost: componentData.purchaseCost || 0,
+        totalScrapCost: productData.scrapCost || 0,
+        materialCostWithGst: productData.materialCostWithGst || 0,
+        poCost: productData.poCost || 0,
       });
 
       setSelectedComponent(componentNumber);
     } else {
-      alert("Product details not found.");
+      alert("Component details not found.");
     }
   } catch (error) {
     console.error("Error fetching component details:", error);
@@ -1988,6 +1977,7 @@ useEffect(() => {
           border: "none",
           borderRadius: "5px",
           cursor: "pointer",
+          backgroundColor: "#007bff",
         }}
       >
         {isProfitOpen ? "Close Profit Section" : "Show Profit Section"}
@@ -2066,9 +2056,15 @@ useEffect(() => {
               >
                 <thead>
                   <tr>
-                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>Scrap Total Cost</th>
-                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>Raw Material Cost</th>
-                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>PO Cost</th>
+                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>
+                      Scrap Total Cost
+                    </th>
+                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>
+                      Raw Material Cost
+                    </th>
+                    <th style={{ border: "1px solid #dee2e6", padding: "10px" }}>
+                      PO Cost
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2106,6 +2102,8 @@ useEffect(() => {
         </div>
       )}
     </div>
+
+
     <div className="product-container">
   <button className="face-list-btn" onClick={handleFaceListClick}>
     {showFaceList ? 'Close Face List' : 'Open Face List'}
@@ -2145,32 +2143,39 @@ useEffect(() => {
     </div>
   )}
 
-  {selectedComponent && (
-    <div className="popup-overlay">
-      <div className="popup-content">
-        <button className="close-popup-btn" onClick={() => setSelectedComponent(null)}>
-          Close
-        </button>
-        <h3>Face Details for Component {selectedComponent.componentNumber}</h3>
-        <table className="details-table">
-          <thead>
-            <tr>
-              <th>Face</th>
-              <th>Quantity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {selectedComponent.faces.map((face) => (
-              <tr key={face.face}>
-                <td>{face.face}</td>
-                <td>{face.quantity}</td>
+{selectedComponent && (
+  <div className="popup-overlay">
+    <div className="popup-content">
+      <button className="close-popup-btn" onClick={() => setSelectedComponent(null)}>
+        Close
+      </button>
+      <h3>Face Details for Component {selectedComponent.componentNumber || 'N/A'}</h3>
+      <table className="details-table">
+        <thead>
+          <tr>
+            <th>Face</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.isArray(selectedComponent.faces) && selectedComponent.faces.length > 0 ? (
+            selectedComponent.faces.map((face, index) => (
+              <tr key={index}>
+                <td>{face.face || 'Unknown'}</td>
+                <td>{face.quantity || 0}</td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="2">No face details available</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
-  )}
+  </div>
+)}
+
 </div>
 
 
